@@ -716,3 +716,7 @@
 #ifndef STATS_ENABLED
  # define STATS_ENABLED ENABLED
 #endif
+
+#ifndef SMARTAUDIO_ENABLED
+ # define SMARTAUDIO_ENABLED ENABLED
+#endif

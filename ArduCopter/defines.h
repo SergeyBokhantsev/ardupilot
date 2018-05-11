@@ -75,6 +75,8 @@ enum aux_sw_func {
     AUXSW_WINCH_ENABLE =        44, // winch enable/disable
     AUXSW_WINCH_CONTROL =       45, // winch control
     AUXSW_RC_OVERRIDE_ENABLE =  46, // enable RC Override
+	AUXSW_SMARTAUDIO_PWR_TGL =  47, // SetPower toggle Low / High
+    AUXSW_SMARTAUDIO_REC_TGL =  48, // Toggle recording
     AUXSW_SWITCH_MAX,
 };
 

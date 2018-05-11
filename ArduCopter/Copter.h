@@ -84,6 +84,7 @@
 #include <AP_Arming/AP_Arming.h>
 #include <AP_SmartRTL/AP_SmartRTL.h>
 #include <AP_TempCalibration/AP_TempCalibration.h>
+#include <AP_SmartAudio/AP_SmartAudio.h>
 
 // Configuration
 #include "defines.h"
@@ -566,6 +567,8 @@ private:
     // avoidance of adsb enabled vehicles (normally manned vehicles)
     AP_Avoidance_Copter avoidance_adsb{ahrs, adsb};
 #endif
+
+    AP_SmartAudio smart_audio;
 
     // use this to prevent recursion during sensor init
     bool in_mavlink_delay;

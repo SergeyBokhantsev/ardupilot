@@ -106,6 +106,10 @@ void Copter::init_ardupilot()
                          &ap.value);
 #endif
 
+#if SMARTAUDIO_ENABLED == ENABLED
+	smart_audio.init(serial_manager, &gcs());
+#endif
+    
 #if LOGGING_ENABLED == ENABLED
     log_init();
 #endif
