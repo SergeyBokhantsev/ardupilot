@@ -732,3 +732,7 @@
 #ifndef OSD_ENABLED
  #define OSD_ENABLED DISABLED
 #endif
+
+#ifndef SMARTAUDIO_ENABLED
+ # define SMARTAUDIO_ENABLED ENABLED
+#endif

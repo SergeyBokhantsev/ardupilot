@@ -39,6 +39,19 @@ void Copter::userhook_SlowLoop()
 #ifdef USERHOOK_SUPERSLOWLOOP
 void Copter::userhook_SuperSlowLoop()
 {
-    // put your 1Hz code here
+    if (ahrs.get_likely_flying())
+    {
+        Location loc;
+        if (ahrs.get_position(loc))
+        {
+            const Location &home_loc = ahrs.get_home();
+            if (home_loc.lat != 0 || home_loc.lng != 0)
+            {
+                g2.smart_audio.check_home_distance(get_distance(home_loc, loc));
+            }
+        }
+    }
+    else
+        g2.smart_audio.check_home_distance(0);
 }
 #endif

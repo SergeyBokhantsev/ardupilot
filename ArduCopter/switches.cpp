@@ -204,6 +204,7 @@ void Copter::init_aux_switch_function(int8_t ch_option, uint8_t ch_flag)
         case AUXSW_INVERTED:
         case AUXSW_WINCH_ENABLE:
         case AUXSW_RC_OVERRIDE_ENABLE:
+		case AUXSW_SMARTAUDIO_PWR_TGL:
             do_aux_switch_function(ch_option, ch_flag);
             break;
     }
@@ -730,6 +731,25 @@ void Copter::do_aux_switch_function(int8_t ch_function, uint8_t ch_flag)
                 }
             }
             break;
+			
+#if SMARTAUDIO_ENABLED == ENABLED
+		case AUXSW_SMARTAUDIO_PWR_TGL:
+			switch (ch_flag) {
+					case AUX_SWITCH_HIGH: {
+						g2.smart_audio.hi_power_mode(true);
+						break;
+					}
+					case AUX_SWITCH_LOW: {
+						g2.smart_audio.hi_power_mode(false);
+						break;
+					}
+				}
+				break;
+                
+        case AUXSW_SMARTAUDIO_REC_TGL:
+            if (ch_flag == AUX_SWITCH_HIGH)
+                g2.smart_audio.toggle_recording();
+#endif
     }
 }
 
