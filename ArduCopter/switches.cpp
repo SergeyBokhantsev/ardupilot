@@ -731,6 +731,20 @@ void Copter::do_aux_switch_function(int8_t ch_function, uint8_t ch_flag)
                 }
             }
             break;
+
+#ifdef USERHOOK_AUXSWITCH
+        case AUXSW_USER_FUNC1:
+            userhook_auxSwitch1(ch_flag);
+            break;
+            
+        case AUXSW_USER_FUNC2:
+            userhook_auxSwitch2(ch_flag);
+            break;
+            
+        case AUXSW_USER_FUNC3:
+            userhook_auxSwitch3(ch_flag);
+            break;
+#endif
 			
 #if SMARTAUDIO_ENABLED == ENABLED
 		case AUXSW_SMARTAUDIO_PWR_TGL:

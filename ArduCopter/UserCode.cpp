@@ -55,3 +55,20 @@ void Copter::userhook_SuperSlowLoop()
         g2.smart_audio.check_home_distance(0);
 }
 #endif
+
+#ifdef USERHOOK_AUXSWITCH
+void Copter::userhook_auxSwitch1(uint8_t ch_flag)
+{
+    // put your aux switch #1 handler here (CHx_OPT = 47)
+}
+
+void Copter::userhook_auxSwitch2(uint8_t ch_flag)
+{
+    // put your aux switch #2 handler here (CHx_OPT = 48)
+}
+
+void Copter::userhook_auxSwitch3(uint8_t ch_flag)
+{
+    // put your aux switch #3 handler here (CHx_OPT = 49)
+}
+#endif
