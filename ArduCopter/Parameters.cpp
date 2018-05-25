@@ -988,9 +988,9 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     AP_SUBGROUPINFO(follow, "FOLL", 27, ParametersG2, AP_Follow),
 #endif
 
-    // @Group: SMAUD_
+    // @Group: SMAUD
     // @Path: ../libraries/AP_SmartAudio/AP_SmartAudio.cpp
-    //AP_SUBGROUPINFO(smart_audio, "SMAUD_", 28, ParametersG2, AP_SmartAudio),
+    AP_SUBGROUPINFO(smart_audio, "SMAUD_", 28, ParametersG2, AP_SmartAudio),
 
     AP_GROUPEND
 };

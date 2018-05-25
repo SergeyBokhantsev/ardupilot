@@ -99,8 +99,8 @@ public:
         SerialProtocol_Beacon = 13,
         SerialProtocol_Volz = 14,                    // Volz servo protocol
         SerialProtocol_Sbus1 = 15,
-        SerialProtocol_ESCTelemetry = 16
-		SerialProtocol_SmartAudio = 28,
+        SerialProtocol_ESCTelemetry = 16,
+        SerialProtocol_SmartAudio = 28,
     };
 
     // get singleton instance

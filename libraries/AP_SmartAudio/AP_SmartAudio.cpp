@@ -4,45 +4,45 @@
 //extern const AP_HAL::HAL& hal;
 
 const AP_Param::GroupInfo AP_SmartAudio::var_info[] = {
-    // @Param: POWER_HI
+    // @Param: PWRHI
     // @DisplayName: SmartAudio power high
     // @Description: SmartAudio power high used with switch function #47
     // @Units: point
     // @Range: 0 3
     // @User: Advanced
-    AP_GROUPINFO("POWER_HI", 0, AP_SmartAudio, _power_hi, 1),
+    AP_GROUPINFO("PWRHI", 0, AP_SmartAudio, _power_hi, 1),
 
-	// @Param: POWER_LO
+	// @Param: PWRLO
     // @DisplayName: SmartAudio power low
     // @Description: SmartAudio power low used with switch function #47
     // @Units: point
     // @Range: 0 3
     // @User: Advanced
-    AP_GROUPINFO("POWER_LO", 0, AP_SmartAudio, _power_lo, 0),
+    AP_GROUPINFO("PWRLO", 1, AP_SmartAudio, _power_lo, 0),
 
-    // @Param: AUTOPWR_ZONE0
+    // @Param: APWRZ0
     // @DisplayName: Boundary of the power level #0 zone
     // @Description: Entering that zone power level #0 will be applied. Leaving that zone power level #1 will be applied
     // @Units: meters
     // @Range: 0 10000
     // @User: Advanced
-    AP_GROUPINFO("AUTOPWR_ZONE0", 0, AP_SmartAudio, _auto_power_zone0, 0),
+    AP_GROUPINFO("APWRZ0", 2, AP_SmartAudio, _auto_power_zone0, 0),
     
-    // @Param: AUTOPWR_ZONE1
+    // @Param: APWRZ1
     // @DisplayName: Additional boundary (to the #0 boundary) of the power level #1 zone
     // @Description: Entering that zone power level #1 will be applied. Leaving that zone power level #2 will be applied
     // @Units: meters
     // @Range: 0 10000
     // @User: Advanced
-    AP_GROUPINFO("AUTOPWR_ZONE1", 0, AP_SmartAudio, _auto_power_zone1, 0),
+    AP_GROUPINFO("APWRZ1", 3, AP_SmartAudio, _auto_power_zone1, 0),
     
-    // @Param: AUTOPWR_ZONE2
+    // @Param: APWRZ2
     // @DisplayName: Additional boundary (to the #0+1 boundary) of the power level #2 zone
     // @Description: Entering that zone power level #2 will be applied. Leaving that zone power level #3 will be applied
     // @Units: meters
     // @Range: 0 10000
     // @User: Advanced
-    AP_GROUPINFO("AUTOPWR_ZONE2", 0, AP_SmartAudio, _auto_power_zone2, 0),    
+    AP_GROUPINFO("APWRZ2", 4, AP_SmartAudio, _auto_power_zone2, 0),    
     
     AP_GROUPEND
 };
@@ -52,6 +52,7 @@ _uart_exists(false),
 _port_mode(SMARTAUDIO_PORT_MODE_NONE),
 _power_zone(-1)
 {
+    AP_Param::setup_object_defaults(this, var_info);
 }
 
 /*
