@@ -51,8 +51,7 @@ AP_SmartAudio::AP_SmartAudio() :
 _uart_exists(false),
 _port_mode(SMARTAUDIO_PORT_MODE_NONE),
 _power_zone(-1),
-_hi_power_mode(false),
-_camera_recording(false)
+_hi_power_mode(false)
 {
     AP_Param::setup_object_defaults(this, var_info);
 }
@@ -116,7 +115,7 @@ void AP_SmartAudio::hi_power_mode(bool enabled)
 
 void AP_SmartAudio::set_power(int8_t value)
 {
-    DataFlash_Class::instance()->Log_Write_SMAUD_VTX((uint8_t)value, _power_zone, _hi_power_mode ? 1 : 0)
+    DataFlash_Class::instance()->Log_Write_SMAUD_VTX((uint8_t)value, _power_zone, _hi_power_mode ? 1 : 0);
     
     switch(value)
     {
@@ -128,11 +127,7 @@ void AP_SmartAudio::set_power(int8_t value)
 }
 
 void AP_SmartAudio::toggle_recording()
-{
-    _camera_recording = !_camera_recording;
-    
-    DataFlash_Class::instance()->Log_Write_SMAUD_CAM(_camera_recording ? 1 : 0);
-    
+{    
     send_rc_split_command(command_toggle_rec, 3);
     _gcs->send_text(MAV_SEVERITY_INFO, "REC switch");
 }

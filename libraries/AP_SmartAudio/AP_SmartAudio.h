@@ -56,14 +56,12 @@ private:
     
     bool _hi_power_mode;    
 
-    bool _camera_recording;
-    
     AP_Int8 _power_lo;
     AP_Int8 _power_hi;
     
-    AP_Int8 _auto_power_zone0;
-    AP_Int8 _auto_power_zone1;
-    AP_Int8 _auto_power_zone2;
+    AP_Int16 _auto_power_zone0;
+    AP_Int16 _auto_power_zone1;
+    AP_Int16 _auto_power_zone2;
     
     uint8_t command_power_0[4] SMARTAUDIO_V2_COMMAND_POWER_0;
     uint8_t command_power_1[4] SMARTAUDIO_V2_COMMAND_POWER_1;
@@ -76,7 +74,7 @@ private:
 
     bool is_auto_power_enabled() { return !_hi_power_mode && _auto_power_zone0 > 0 && _auto_power_zone1 > 0 && _auto_power_zone2 > 0; }
 
-    bool activate_port(uint8_t mode)
+    bool activate_port(uint8_t mode);
     void send_v2_command(uint8_t* data, uint8_t len);
     void send_rc_split_command(uint8_t* data, uint8_t len);
 };
