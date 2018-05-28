@@ -51,7 +51,8 @@ AP_SmartAudio::AP_SmartAudio() :
 _uart_exists(false),
 _port_mode(SMARTAUDIO_PORT_MODE_NONE),
 _power_zone(-1),
-_hi_power_mode(false)
+_hi_power_mode(false),
+_camera_recording(false)
 {
     AP_Param::setup_object_defaults(this, var_info);
 }
@@ -104,8 +105,8 @@ void AP_SmartAudio::hi_power_mode(bool enabled)
 
     if (_hi_power_mode)
     {
-        set_power(_power_hi);
         _power_zone = -1;
+        set_power(_power_hi);        
     }
     else if (!is_auto_power_enabled())
     {
@@ -115,9 +116,11 @@ void AP_SmartAudio::hi_power_mode(bool enabled)
 
 void AP_SmartAudio::set_power(int8_t value)
 {
+    DataFlash_Class::instance()->Log_Write_SMAUD_VTX((uint8_t)value, _power_zone, _hi_power_mode ? 1 : 0)
+    
     switch(value)
     {
-        case 0:	send_v2_command(command_power_0, 4); _gcs->send_text(MAV_SEVERITY_INFO, "PWR0"); break;        
+        case 0:	send_v2_command(command_power_0, 4); _gcs->send_text(MAV_SEVERITY_INFO, "PWR0"); break;                        
         case 1:	send_v2_command(command_power_1, 4); _gcs->send_text(MAV_SEVERITY_INFO, "PWR1"); break;
         case 2:	send_v2_command(command_power_2, 4); _gcs->send_text(MAV_SEVERITY_INFO, "PWR2"); break;
         case 3:	send_v2_command(command_power_3, 4); _gcs->send_text(MAV_SEVERITY_INFO, "PWR3"); break;
@@ -126,6 +129,10 @@ void AP_SmartAudio::set_power(int8_t value)
 
 void AP_SmartAudio::toggle_recording()
 {
+    _camera_recording = !_camera_recording;
+    
+    DataFlash_Class::instance()->Log_Write_SMAUD_CAM(_camera_recording ? 1 : 0);
+    
     send_rc_split_command(command_toggle_rec, 3);
     _gcs->send_text(MAV_SEVERITY_INFO, "REC switch");
 }

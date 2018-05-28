@@ -1036,6 +1036,20 @@ struct PACKED log_SRTL {
     float D;
 };
 
+struct PACKED log_SMAUD_VTX_PWR {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    uint8_t power;
+	int8_t zone;
+	uint8_t hi_power_mode
+};
+
+struct PACKED log_SMAUD_CAM {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    uint8_t recordingEnabled;
+};
+
 struct PACKED log_DSTL {
     LOG_PACKET_HEADER;
     uint64_t time_us;
@@ -1239,7 +1253,11 @@ Format characters in the format string for binary log messages
     { LOG_PERFORMANCE_MSG, sizeof(log_Performance),                     \
       "PM",  "QHHIIH", "TimeUS,NLon,NLoop,MaxT,Mem,Load", "s---b%", "F---0A" }, \
     { LOG_SRTL_MSG, sizeof(log_SRTL), \
-      "SRTL", "QBHHBfff", "TimeUS,Active,NumPts,MaxPts,Action,N,E,D", "s----mmm", "F----000" }
+      "SRTL", "QBHHBfff", "TimeUS,Active,NumPts,MaxPts,Action,N,E,D", "s----mmm", "F----000" } , \
+	{ LOG_SMAUD_VTX_PWR_MSG, sizeof(log_SMAUD_VTX_PWR), \
+      "VTXPWR", "QBbB", "TimeUS,Power,Zone,HiPwr", "s---", "F000" }, \
+	{ LOG_SMAUD_CAM_MSG, sizeof(log_SMAUD_CAM), \
+      "CAMERA", "QB", "TimeUS,RecOn", "s-", "F-" }
 
 // messages for more advanced boards
 #define LOG_EXTRA_STRUCTURES \
@@ -1550,6 +1568,8 @@ enum LogMessages : uint8_t {
     LOG_ISBD_MSG,
     LOG_ASP2_MSG,
     LOG_PERFORMANCE_MSG,
+	LOG_SMAUD_VTX_PWR_MSG,
+	LOG_SMAUD_CAM_MSG,
     _LOG_LAST_MSG_
 };
 

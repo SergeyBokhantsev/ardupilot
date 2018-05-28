@@ -1,8 +1,6 @@
 #pragma once
 
-//#include <AP_HAL/AP_HAL.h>
-//#include <AP_AHRS/AP_AHRS.h>
-//#include <AP_Notify/AP_Notify.h>
+#include <DataFlash/DataFlash.h>
 #include <AP_SerialManager/AP_SerialManager.h>
 #include <AP_Param/AP_Param.h>
 #include <GCS_MAVLink/GCS.h>
@@ -58,6 +56,8 @@ private:
     
     bool _hi_power_mode;    
 
+    bool _camera_recording;
+    
     AP_Int8 _power_lo;
     AP_Int8 _power_hi;
     
@@ -76,7 +76,7 @@ private:
 
     bool is_auto_power_enabled() { return !_hi_power_mode && _auto_power_zone0 > 0 && _auto_power_zone1 > 0 && _auto_power_zone2 > 0; }
 
-    bool activate_port(uint8_t mode);
+    bool activate_port(uint8_t mode)
     void send_v2_command(uint8_t* data, uint8_t len);
     void send_rc_split_command(uint8_t* data, uint8_t len);
 };
