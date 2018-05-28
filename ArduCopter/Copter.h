@@ -568,8 +568,6 @@ private:
     AP_Avoidance_Copter avoidance_adsb{ahrs, adsb};
 #endif
 
-    AP_SmartAudio smart_audio;
-
     // use this to prevent recursion during sensor init
     bool in_mavlink_delay;
 

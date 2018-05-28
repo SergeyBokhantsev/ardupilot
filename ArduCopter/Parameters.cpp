@@ -988,9 +988,11 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     AP_SUBGROUPINFO(follow, "FOLL", 27, ParametersG2, AP_Follow),
 #endif
 
+#if SMARTAUDIO_ENABLED == ENABLED
     // @Group: SMAUD
     // @Path: ../libraries/AP_SmartAudio/AP_SmartAudio.cpp
     AP_SUBGROUPINFO(smart_audio, "SMAUD_", 28, ParametersG2, AP_SmartAudio),
+#endif
 
     AP_GROUPEND
 };
@@ -1019,7 +1021,9 @@ ParametersG2::ParametersG2(void)
 #if MODE_FOLLOW_ENABLED == ENABLED
     ,follow()
 #endif
+#if SMARTAUDIO_ENABLED == ENABLED
     ,smart_audio()
+#endif
 {
     AP_Param::setup_object_defaults(this, var_info);
 }

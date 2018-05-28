@@ -705,11 +705,11 @@ void Copter::do_aux_switch_function(int8_t ch_function, uint8_t ch_flag)
 		case AUXSW_SMARTAUDIO_PWR_TGL:
 			switch (ch_flag) {
 					case AUX_SWITCH_HIGH: {
-						smart_audio.set_power_hi();
+						g2.smart_audio.hi_power_mode(true);
 						break;
 					}
 					case AUX_SWITCH_LOW: {
-						smart_audio.set_power_lo();
+						g2.smart_audio.hi_power_mode(false);
 						break;
 					}
 				}
@@ -717,7 +717,7 @@ void Copter::do_aux_switch_function(int8_t ch_function, uint8_t ch_flag)
                 
         case AUXSW_SMARTAUDIO_REC_TGL:
             if (ch_flag == AUX_SWITCH_HIGH)
-                smart_audio.toggle_recording();
+                g2.smart_audio.toggle_recording();
 #endif
     }
 }

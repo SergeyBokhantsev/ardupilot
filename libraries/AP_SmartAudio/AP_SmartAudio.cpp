@@ -50,7 +50,8 @@ const AP_Param::GroupInfo AP_SmartAudio::var_info[] = {
 AP_SmartAudio::AP_SmartAudio() : 
 _uart_exists(false),
 _port_mode(SMARTAUDIO_PORT_MODE_NONE),
-_power_zone(-1)
+_power_zone(-1),
+_hi_power_mode(false)
 {
     AP_Param::setup_object_defaults(this, var_info);
 }
@@ -97,46 +98,49 @@ bool AP_SmartAudio::activate_port(uint8_t mode)
     return false;
 }
 
-void AP_SmartAudio::set_power_hi()
+void AP_SmartAudio::hi_power_mode(bool enabled)
 {
-	set_power(_power_hi);
+    _hi_power_mode = enabled;
+
+    if (_hi_power_mode)
+    {
+        set_power(_power_hi);
+        _power_zone = -1;
+    }
+    else if (!is_auto_power_enabled())
+    {
+        set_power(_power_lo);
+    }
 }
 
-void AP_SmartAudio::set_power_lo()
+void AP_SmartAudio::set_power(int8_t value)
 {
-	set_power(_power_lo);
-}
-
-void AP_SmartAudio::set_power(uint8_t value)
-{
-	switch(value)
-	{
-		case 0:	send_v2_command(command_power_0, 4); _gcs->send_text(MAV_SEVERITY_INFO, "VTX PWR 0"); break;
-		case 1:	send_v2_command(command_power_1, 4); _gcs->send_text(MAV_SEVERITY_INFO, "VTX PWR 1"); break;
-		case 2:	send_v2_command(command_power_2, 4); _gcs->send_text(MAV_SEVERITY_INFO, "VTX PWR 2"); break;
-		case 3:	send_v2_command(command_power_3, 4); _gcs->send_text(MAV_SEVERITY_INFO, "VTX PWR 3"); break;
-	}
+    switch(value)
+    {
+        case 0:	send_v2_command(command_power_0, 4); _gcs->send_text(MAV_SEVERITY_INFO, "PWR0"); break;        
+        case 1:	send_v2_command(command_power_1, 4); _gcs->send_text(MAV_SEVERITY_INFO, "PWR1"); break;
+        case 2:	send_v2_command(command_power_2, 4); _gcs->send_text(MAV_SEVERITY_INFO, "PWR2"); break;
+        case 3:	send_v2_command(command_power_3, 4); _gcs->send_text(MAV_SEVERITY_INFO, "PWR3"); break;
+    }
 }
 
 void AP_SmartAudio::toggle_recording()
 {
-	send_rc_split_command(command_toggle_rec, 3);
+    send_rc_split_command(command_toggle_rec, 3);
     _gcs->send_text(MAV_SEVERITY_INFO, "REC switch");
 }
 
 void AP_SmartAudio::check_home_distance(float meters)
 {
-	if (_auto_power_zone0 > SMARTAUDIO_AUTOPOWER_HISTERESIS * 2
-        && _auto_power_zone1 > SMARTAUDIO_AUTOPOWER_HISTERESIS * 2
-        && _auto_power_zone2 > SMARTAUDIO_AUTOPOWER_HISTERESIS * 2)
+    if (is_auto_power_enabled())
     {
         int8_t actual_zone;
         
-        if (meters < _auto_power_zone0)
+        if (meters <= _auto_power_zone0)
             actual_zone = 0;
-        else if (meters < _auto_power_zone0 + _auto_power_zone1)
+        else if (meters <= _auto_power_zone0 + _auto_power_zone1)
             actual_zone = 1;
-        else if (meters < _auto_power_zone0 + _auto_power_zone1 + _auto_power_zone2)
+        else if (meters <= _auto_power_zone0 + _auto_power_zone1 + _auto_power_zone2)
             actual_zone = 2;
         else
             actual_zone = 3;
