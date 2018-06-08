@@ -52,6 +52,7 @@ private:
     
     bool _uart_exists;
     uint8_t _port_mode;
+    int8_t _current_mode;
     int8_t _power_zone;
     
     bool _hi_power_mode;    

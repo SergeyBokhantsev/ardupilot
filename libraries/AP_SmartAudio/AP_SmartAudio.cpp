@@ -51,7 +51,8 @@ AP_SmartAudio::AP_SmartAudio() :
 _uart_exists(false),
 _port_mode(SMARTAUDIO_PORT_MODE_NONE),
 _power_zone(-1),
-_hi_power_mode(false)
+_hi_power_mode(false),
+_current_mode(-1)
 {
     AP_Param::setup_object_defaults(this, var_info);
 }
@@ -104,10 +105,13 @@ void AP_SmartAudio::hi_power_mode(bool enabled)
 
     if (_hi_power_mode)
     {
-        _power_zone = -1;
-        set_power(_power_hi);        
+        set_power(_power_hi);
     }
-    else if (!is_auto_power_enabled())
+    else if (is_auto_power_enabled())
+    {
+        set_power(_power_zone);
+    }
+    else
     {
         set_power(_power_lo);
     }
@@ -124,6 +128,8 @@ void AP_SmartAudio::set_power(int8_t value)
         case 2:	send_v2_command(command_power_2, 4); _gcs->send_text(MAV_SEVERITY_INFO, "PWR2"); break;
         case 3:	send_v2_command(command_power_3, 4); _gcs->send_text(MAV_SEVERITY_INFO, "PWR3"); break;
     }
+    
+    _current_mode = value;
 }
 
 void AP_SmartAudio::toggle_recording()
@@ -134,25 +140,17 @@ void AP_SmartAudio::toggle_recording()
 
 void AP_SmartAudio::check_home_distance(float meters)
 {
-    if (is_auto_power_enabled())
-    {
-        int8_t actual_zone;
-        
-        if (meters <= _auto_power_zone0)
-            actual_zone = 0;
-        else if (meters <= _auto_power_zone0 + _auto_power_zone1)
-            actual_zone = 1;
-        else if (meters <= _auto_power_zone0 + _auto_power_zone1 + _auto_power_zone2)
-            actual_zone = 2;
-        else
-            actual_zone = 3;
-        
-        if (_power_zone != actual_zone)
-        {
-            _power_zone = actual_zone;
-            set_power(_power_zone);
-        }
-    }
+    if (meters <= _auto_power_zone0)
+        _power_zone = 0;
+    else if (meters <= _auto_power_zone0 + _auto_power_zone1)
+        _power_zone = 1;
+    else if (meters <= _auto_power_zone0 + _auto_power_zone1 + _auto_power_zone2)
+        _power_zone = 2;
+    else
+        _power_zone = 3;
+    
+    if (is_auto_power_enabled() && _current_mode != _power_zone)
+        set_power(_power_zone);        
 }
 
 void AP_SmartAudio::send_v2_command(uint8_t* data, uint8_t len)
