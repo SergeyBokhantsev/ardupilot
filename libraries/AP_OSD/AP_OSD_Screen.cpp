@@ -154,12 +154,15 @@ const AP_Param::GroupInfo AP_OSD_Screen::var_info[] = {
     // @Path: AP_OSD_Setting.cpp
     AP_SUBGROUPINFO(pitch_angle, "PITCH", 27, AP_OSD_Screen, AP_OSD_Setting),
 
+    // @Group: TEMP
+    // @Path: AP_OSD_Setting.cpp
+    AP_SUBGROUPINFO(temp, "TEMP", 28, AP_OSD_Screen, AP_OSD_Setting),
+
+
     // SB Custom
     AP_SUBGROUPINFO(wattage, "POWER_W", 28, AP_OSD_Screen, AP_OSD_Setting),
     AP_SUBGROUPINFO(wh_consumed, "USED_WH", 29, AP_OSD_Screen, AP_OSD_Setting),
-    AP_SUBGROUPINFO(baro_temp, "BARO_T", 30, AP_OSD_Screen, AP_OSD_Setting),
-    
-    AP_GROUPEND
+      AP_GROUPEND
 };
 
 // constructor
@@ -827,11 +830,11 @@ void AP_OSD_Screen::draw_pitch_angle(uint8_t x, uint8_t y)
     backend->write(x, y, false, "%c%3d%c", p, pitch, SYM_DEGR);
 }
 
-void AP_OSD_Screen::draw_baro_temp(uint8_t x, uint8_t y)
+void AP_OSD_Screen::draw_temp(uint8_t x, uint8_t y)
 {
-    AP_Baro* baro = AP_Baro::get_instance();
-    float t = baro->get_temperature();
-    backend->write(x, y, false, "%2.1f%c", t, SYM_DEGR);
+    AP_Baro &barometer = AP::baro();
+    float tmp = barometer.get_temperature();
+    backend->write(x, y, false, "%3d%c", (int)u_scale(TEMPERATURE, tmp), u_icon(TEMPERATURE));
 }
 
 #define DRAW_SETTING(n) if (n.enabled) draw_ ## n(n.xpos, n.ypos)
@@ -866,6 +869,7 @@ void AP_OSD_Screen::draw(void)
     DRAW_SETTING(home);
     DRAW_SETTING(roll_angle);
     DRAW_SETTING(pitch_angle);
+    DRAW_SETTING(temp);
     DRAW_SETTING(wattage);
     DRAW_SETTING(wh_consumed);
 
@@ -877,5 +881,4 @@ void AP_OSD_Screen::draw(void)
 
     DRAW_SETTING(gps_latitude);
     DRAW_SETTING(gps_longitude);
-    DRAW_SETTING(baro_temp);
 }
