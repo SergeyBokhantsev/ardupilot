@@ -28,6 +28,7 @@
 #include <AP_Math/AP_Math.h>
 #include <AP_RSSI/AP_RSSI.h>
 #include <AP_Notify/AP_Notify.h>
+#include <AP_Stats/AP_Stats.h>
 #include <AP_Baro/AP_Baro.h>
 
 #include <ctype.h>
@@ -178,6 +179,10 @@ const AP_Param::GroupInfo AP_OSD_Screen::var_info[] = {
     // @Path: AP_OSD_Setting.cpp
     AP_SUBGROUPINFO(stat, "STATS", 33, AP_OSD_Screen, AP_OSD_Setting),
 
+    // @Group: FLTIME
+    // @Path: AP_OSD_Setting.cpp
+    AP_SUBGROUPINFO(flightime, "FLTIME", 34, AP_OSD_Screen, AP_OSD_Setting),
+
     // SB Custom
     AP_SUBGROUPINFO(wattage, "POWER_W", 28, AP_OSD_Screen, AP_OSD_Setting),
     AP_SUBGROUPINFO(wh_consumed, "USED_WH", 29, AP_OSD_Screen, AP_OSD_Setting),
@@ -275,6 +280,7 @@ AP_OSD_Screen::AP_OSD_Screen()
 #define SYM_KN        0xF0
 #define SYM_NM        0xF1
 #define SYM_DIST      0x22
+#define SYM_FLY       0x9C
 
 void AP_OSD_Screen::set_backend(AP_OSD_Backend *_backend)
 {
@@ -465,7 +471,7 @@ void AP_OSD_Screen::draw_sats(uint8_t x, uint8_t y)
 {
     AP_GPS & gps = AP::gps();
     int nsat = gps.num_sats();
-    backend->write(x, y, nsat < osd->warn_nsat , "%c%c%2d", SYM_SAT_L, SYM_SAT_R, nsat);
+    backend->write(x, y, nsat < osd->warn_nsat, "%c%c%2d", SYM_SAT_L, SYM_SAT_R, nsat);
 }
 
 void AP_OSD_Screen::draw_batused(uint8_t x, uint8_t y)
@@ -905,6 +911,15 @@ void AP_OSD_Screen::draw_dist(uint8_t x, uint8_t y)
     draw_distance(x+1, y, osd->last_distance_m);   
 }
 
+void  AP_OSD_Screen::draw_flightime(uint8_t x, uint8_t y)
+{
+    AP_Stats *stats = AP::stats();
+    if (stats) {
+        uint32_t t = stats->get_flight_time_s();
+        backend->write(x, y, false, "%c%3u:%02u", SYM_FLY, t/60, t%60);
+    }
+}
+
 #define DRAW_SETTING(n) if (n.enabled) draw_ ## n(n.xpos, n.ypos)
 
 void AP_OSD_Screen::draw(void)
@@ -941,6 +956,7 @@ void AP_OSD_Screen::draw(void)
     DRAW_SETTING(pitch_angle);
     DRAW_SETTING(temp);
     DRAW_SETTING(hdop);
+    DRAW_SETTING(flightime);
     DRAW_SETTING(wattage);
     DRAW_SETTING(wh_consumed);
 
