@@ -59,12 +59,28 @@ void Copter::userhook_SuperSlowLoop()
 #ifdef USERHOOK_AUXSWITCH
 void Copter::userhook_auxSwitch1(uint8_t ch_flag)
 {
-    // put your aux switch #1 handler here (CHx_OPT = 47)
+    // VTX FORCE POWER (CHx_OPT = 47)
+#if SMARTAUDIO_ENABLED == ENABLED
+    switch (ch_flag){
+        case AUX_SWITCH_HIGH: {
+            g2.smart_audio.hi_power_mode(true);
+            break;
+        }
+        case AUX_SWITCH_LOW: {
+            g2.smart_audio.hi_power_mode(false);
+            break;
+        }
+    }
+#endif
 }
 
 void Copter::userhook_auxSwitch2(uint8_t ch_flag)
 {
-    // put your aux switch #2 handler here (CHx_OPT = 48)
+    // RunCam Split RECORD TOGGLE (CHx_OPT = 48)
+#if SMARTAUDIO_ENABLED == ENABLED
+    if (ch_flag == AUX_SWITCH_HIGH)
+        g2.smart_audio.toggle_recording();
+#endif
 }
 
 void Copter::userhook_auxSwitch3(uint8_t ch_flag)
