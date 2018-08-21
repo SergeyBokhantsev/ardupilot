@@ -992,6 +992,10 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     AP_SUBGROUPINFO(smart_audio, "SMAUD_", 28, ParametersG2, AP_SmartAudio),
 #endif
 
+#ifdef USER_PARAMS_ENABLED
+    AP_SUBGROUPINFO(follow, "USR", 28, ParametersG2, UserParameters),
+#endif
+
     AP_GROUPEND
 };
 
@@ -1022,6 +1026,11 @@ ParametersG2::ParametersG2(void)
 #if SMARTAUDIO_ENABLED == ENABLED
     ,smart_audio()
 #endif
+
+#ifdef USER_PARAMS_ENABLED
+    ,user_parameters()
+#endif
+
 {
     AP_Param::setup_object_defaults(this, var_info);
 }
