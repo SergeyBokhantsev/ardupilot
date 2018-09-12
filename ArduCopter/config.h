@@ -428,6 +428,9 @@
 #ifndef LAND_WITH_DELAY_MS
  # define LAND_WITH_DELAY_MS        4000    // default delay (in milliseconds) when a land-with-delay is triggered during a failsafe event
 #endif
+#ifndef RTL_WITH_DELAY_MS
+ # define RTL_WITH_DELAY_MS        15000    // default delay (in milliseconds) when a RTL-with-delay is triggered during a failsafe event
+#endif
 #ifndef LAND_CANCEL_TRIGGER_THR
  # define LAND_CANCEL_TRIGGER_THR   700     // land is cancelled by input throttle above 700
 #endif

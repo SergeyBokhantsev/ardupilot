@@ -14,11 +14,10 @@ void Copter::failsafe_radio_on_event()
     if (should_disarm_on_failsafe()) {
         arming.disarm();
     } else {
-        if (control_mode == AUTO && g.failsafe_throttle == FS_THR_ENABLED_CONTINUE_MISSION) {
+        if (control_mode == AUTO) {
             // continue mission
-        } else if (control_mode == LAND &&
-                   battery.has_failsafed() &&
-                   battery.get_highest_failsafe_priority() <= FAILSAFE_LAND_PRIORITY) {
+        }
+        else if (control_mode == LAND) {
             // continue landing or other high priority failsafes
         } else {
             if (g.failsafe_throttle == FS_THR_ENABLED_ALWAYS_RTL) {
@@ -224,13 +223,23 @@ void Copter::gpsglitch_check()
 //  this is always called from a failsafe so we trigger notification to pilot
 void Copter::set_mode_RTL_or_land_with_pause(mode_reason_t reason)
 {
-    // attempt to switch to RTL, if this fails then switch to Land
-    if (!set_mode(RTL, reason)) {
-        // set mode to land will trigger mode change notification to pilot
-        set_mode_land_with_pause(reason);
-    } else {
+    bool is_smart_mode = control_mode == LOITER || control_mode == POSHOLD || control_mode == ALT_HOLD;
+    control_mode_t original_mode = control_mode;
+    
+    if (reason == MODE_REASON_RADIO_FAILSAFE && is_smart_mode && RTL_WITH_DELAY_MS > 0 && set_mode(BRAKE, reason)){
         // alert pilot to mode change
         AP_Notify::events.failsafe_mode_change = 1;
+        // schedule a transition to RTL or Land
+        copter.mode_brake.timeout_to_mode_ms(RTL_WITH_DELAY_MS, RTL, LAND);
+        copter.mode_brake.suppress_to_mode(original_mode);
+    }
+    else if (set_mode(RTL, reason)){
+        // alert pilot to mode change
+        AP_Notify::events.failsafe_mode_change = 1;
+    }
+    else {
+        // set mode to land will trigger mode change notification to pilot
+        set_mode_land_with_pause(reason);
     }
 }
 

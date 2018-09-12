@@ -1,4 +1,5 @@
 #include "Copter.h"
+#include <cmath>
 
 #if MODE_BRAKE_ENABLED == ENABLED
 
@@ -24,6 +25,8 @@ bool Copter::ModeBrake::init(bool ignore_checks)
 
     _timeout_ms = 0;
 
+    _cancel_if_radio_link = false;
+        
     return true;
 }
 
@@ -62,16 +65,33 @@ void Copter::ModeBrake::run()
     pos_control->update_z_controller();
 
     if (_timeout_ms != 0 && millis()-_timeout_start >= _timeout_ms) {
-        if (!copter.set_mode(LOITER, MODE_REASON_BRAKE_TIMEOUT)) {
-            copter.set_mode(ALT_HOLD, MODE_REASON_BRAKE_TIMEOUT);
+        _timeout_ms = 0;
+        if (!copter.set_mode(_timeout_mode, MODE_REASON_BRAKE_TIMEOUT)) {
+            if (_timeout_mode_backup != _timeout_mode){
+                copter.set_mode(_timeout_mode_backup, MODE_REASON_BRAKE_TIMEOUT);
+            }
         }
+    }
+    
+    if (_cancel_if_radio_link && !copter.failsafe.radio){
+        copter.set_mode(_cancel_to_mode, MODE_REASON_SUPPRESS_BRAKE);
+        _cancel_if_radio_link = false;
     }
 }
 
-void Copter::ModeBrake::timeout_to_loiter_ms(uint32_t timeout_ms)
+void Copter::ModeBrake::timeout_to_mode_ms(uint32_t timeout_ms, control_mode_t mode, control_mode_t backup_mode)
 {
     _timeout_start = millis();
     _timeout_ms = timeout_ms;
+    _timeout_mode = mode;
+    _timeout_mode_backup = backup_mode;
+}
+
+void Copter::ModeBrake::suppress_to_mode(control_mode_t mode)
+{
+    _cancel_if_radio_link = true;
+    _cancel_to_mode = mode;
 }
 
 #endif
+
