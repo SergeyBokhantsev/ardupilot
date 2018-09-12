@@ -135,6 +135,7 @@ enum mode_reason_t {
     MODE_REASON_THROW_COMPLETE,
     MODE_REASON_TERMINATE,
     MODE_REASON_TMODE,
+    MODE_REASON_SUPPRESS_BRAKE,
 };
 
 // Tuning enumeration

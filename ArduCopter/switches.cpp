@@ -201,7 +201,6 @@ void Copter::init_aux_switch_function(int8_t ch_option, uint8_t ch_flag)
         case AUXSW_INVERTED:
         case AUXSW_WINCH_ENABLE:
         case AUXSW_RC_OVERRIDE_ENABLE:
-		case AUXSW_SMARTAUDIO_PWR_TGL:
             do_aux_switch_function(ch_option, ch_flag);
             break;
     }
