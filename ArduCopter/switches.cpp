@@ -728,7 +728,7 @@ void Copter::do_aux_switch_function(int8_t ch_function, uint8_t ch_flag)
                 }
             }
             break;
-
+            
 #ifdef USERHOOK_AUXSWITCH
         case AUXSW_USER_FUNC1:
             userhook_auxSwitch1(ch_flag);
