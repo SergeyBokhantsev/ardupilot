@@ -1,4 +1,5 @@
 #include "Copter.h"
+#include <cmath>
 
 /*
  * Init and run calls for brake flight mode
@@ -24,6 +25,8 @@ bool Copter::ModeBrake::init(bool ignore_checks)
 
         _timeout_ms = 0;
 
+        _suppress_allowed = false;
+        
         return true;
     }else{
         return false;
@@ -68,14 +71,31 @@ void Copter::ModeBrake::run()
     pos_control->update_z_controller();
 
     if (_timeout_ms != 0 && millis()-_timeout_start >= _timeout_ms) {
-        if (!copter.set_mode(LOITER, MODE_REASON_BRAKE_TIMEOUT)) {
-            copter.set_mode(ALT_HOLD, MODE_REASON_BRAKE_TIMEOUT);
+        _timeout_ms = 0;
+        if (!copter.set_mode(_timeout_mode, MODE_REASON_BRAKE_TIMEOUT)) {
+            if (_timeout_mode_backup != _timeout_mode){
+                copter.set_mode(_timeout_mode_backup, MODE_REASON_BRAKE_TIMEOUT);
+            }
         }
+    }
+    
+    if (_suppress_allowed && !copter.failsafe.radio
+        && (abs(copter.channel_roll->norm_input_dz()) > 0.2f || abs(copter.channel_pitch->norm_input_dz()) > 0.2f)){           
+        
+        copter.set_mode(_suppress_mode, MODE_REASON_SUPPRESS_BRAKE);
     }
 }
 
-void Copter::ModeBrake::timeout_to_loiter_ms(uint32_t timeout_ms)
+void Copter::ModeBrake::timeout_to_mode_ms(uint32_t timeout_ms, control_mode_t mode, control_mode_t backup_mode)
 {
     _timeout_start = millis();
     _timeout_ms = timeout_ms;
+    _timeout_mode = mode;
+    _timeout_mode_backup = backup_mode;
+}
+
+void Copter::ModeBrake::suppress_to_mode(control_mode_t mode)
+{
+    _suppress_allowed = true;
+    _suppress_mode = mode;
 }
