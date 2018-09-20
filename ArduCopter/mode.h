@@ -600,14 +600,13 @@ protected:
     const char *name4() const override { return "BRAK"; }
 
 private:
-
     uint32_t _timeout_start;
     uint32_t _timeout_ms;
     control_mode_t _timeout_mode;
     control_mode_t _timeout_mode_backup;
     
-    bool _suppress_allowed;
-    control_mode_t _suppress_mode;
+    bool _cancel_if_radio_link;
+    control_mode_t _cancel_to_mode;
 };
 
 

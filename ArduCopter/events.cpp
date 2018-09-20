@@ -230,7 +230,7 @@ void Copter::set_mode_RTL_or_land_with_pause(mode_reason_t reason)
     bool is_smart_mode = control_mode == LOITER || control_mode == POSHOLD || control_mode == ALT_HOLD;
     control_mode_t original_mode = control_mode;
     
-    if (is_smart_mode && RTL_WITH_DELAY_MS > 0 && set_mode(BRAKE, reason)){
+    if (reason == MODE_REASON_RADIO_FAILSAFE && is_smart_mode && RTL_WITH_DELAY_MS > 0 && set_mode(BRAKE, reason)){
         // alert pilot to mode change
         AP_Notify::events.failsafe_mode_change = 1;
         // schedule a transition to RTL or Land

@@ -25,7 +25,7 @@ bool Copter::ModeBrake::init(bool ignore_checks)
 
         _timeout_ms = 0;
 
-        _suppress_allowed = false;
+        _cancel_if_radio_link = false;
         
         return true;
     }else{
@@ -79,10 +79,9 @@ void Copter::ModeBrake::run()
         }
     }
     
-    if (_suppress_allowed && !copter.failsafe.radio
-        && (abs(copter.channel_roll->norm_input_dz()) > 0.2f || abs(copter.channel_pitch->norm_input_dz()) > 0.2f)){           
-        
-        copter.set_mode(_suppress_mode, MODE_REASON_SUPPRESS_BRAKE);
+    if (_cancel_if_radio_link && !copter.failsafe.radio){
+        copter.set_mode(_cancel_to_mode, MODE_REASON_SUPPRESS_BRAKE);
+        _cancel_if_radio_link = false;
     }
 }
 
@@ -96,6 +95,6 @@ void Copter::ModeBrake::timeout_to_mode_ms(uint32_t timeout_ms, control_mode_t m
 
 void Copter::ModeBrake::suppress_to_mode(control_mode_t mode)
 {
-    _suppress_allowed = true;
-    _suppress_mode = mode;
+    _cancel_if_radio_link = true;
+    _cancel_to_mode = mode;
 }
