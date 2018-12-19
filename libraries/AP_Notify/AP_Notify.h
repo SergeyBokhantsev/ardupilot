@@ -32,7 +32,7 @@
 
 //Type of on-board display
 #define DISPLAY_OFF     0
-#define DISPLAY_SSD1306 
+#define DISPLAY_SSD1306 1
 #define DISPLAY_SH1106  2
 
 class AP_Notify
