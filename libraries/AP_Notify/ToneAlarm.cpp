@@ -381,7 +381,7 @@ void AP_ToneAlarm::update()
  */
 void AP_ToneAlarm::handle_play_tune(mavlink_message_t *msg)
 {
-	if (pNotify->!buzzer_enabled())
+	if (!pNotify->buzzer_enabled())
 		return;
 	
     // decode mavlink message

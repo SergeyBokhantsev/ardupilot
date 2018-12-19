@@ -204,7 +204,7 @@ void Buzzer::update()
 // on - turns the buzzer on or off
 void Buzzer::on(bool turn_on)
 {
-    if (pNotify->!buzzer_enabled())	{
+    if (!pNotify->buzzer_enabled())	{
 		turn_on = false;
 	}
 	
