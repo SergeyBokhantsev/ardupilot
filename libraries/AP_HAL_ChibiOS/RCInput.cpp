@@ -57,6 +57,17 @@ bool RCInput::new_input()
     bool valid = _rcin_timestamp_last_signal != _last_read;
 
     _last_read = _rcin_timestamp_last_signal;
+	
+	// Extra FrSky-specific Failsafe checking: 
+	// invalidate input if any channel contain 874 value (that is a sign of a bad RC reception)
+	if (valid) {
+        for (uint8_t i = 0; i <  _num_channels; ++i) {
+	        if (_rc_values[i] == 874)
+		        valid = false;
+			    break;
+            }
+	}
+	
     rcin_mutex.give();
 
 #if HAL_RCINPUT_WITH_AP_RADIO
