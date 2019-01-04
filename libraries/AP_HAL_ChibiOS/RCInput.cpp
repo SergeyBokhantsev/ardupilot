@@ -17,6 +17,7 @@
 #include "RCInput.h"
 #include "hal.h"
 #include "hwdef/common/ppm.h"
+#include <AP_Math/crc.h>
 #if CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
 
 #if HAL_WITH_IO_MCU
@@ -28,6 +29,7 @@ extern AP_IOMCU iomcu;
 #include <AP_Math/AP_Math.h>
 
 #define SIG_DETECT_TIMEOUT_US 500000
+#define WATCHDOG_TIMEOUT_MS 20000
 using namespace ChibiOS;
 extern const AP_HAL::HAL& hal;
 void RCInput::init()
@@ -43,6 +45,7 @@ void RCInput::init()
     rcin_prot.init();
 #endif
 
+    _crc_timestamp = 0;
     _init = true;
 }
 
@@ -54,9 +57,24 @@ bool RCInput::new_input()
     if (!rcin_mutex.take_nonblocking()) {
         return false;
     }
-    bool valid = _rcin_timestamp_last_signal != _last_read;
+	
+    bool valid = false;
 
-    _last_read = _rcin_timestamp_last_signal;
+    if (_rcin_timestamp_last_signal != _last_read) {
+        _last_read = _rcin_timestamp_last_signal;
+		
+        uint8_t new_crc = crc_crc8((const uint8_t *)_rc_values, MIN(_num_channels, RC_INPUT_MAX_CHANNELS) * 2);
+		
+        if (_crc != new_crc) {
+            _crc = new_crc;
+            _crc_timestamp = AP_HAL::millis();
+            valid = true;
+        }
+        else if (AP_HAL::millis() - _crc_timestamp < WATCHDOG_TIMEOUT_MS){
+            valid = true;
+        }
+    }
+	
     rcin_mutex.give();
 
 #if HAL_RCINPUT_WITH_AP_RADIO

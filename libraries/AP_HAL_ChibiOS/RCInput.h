@@ -55,6 +55,8 @@ public:
 
 private:
     uint16_t _rc_values[RC_INPUT_MAX_CHANNELS] = {0};
+    uint8_t _crc;
+    uint64_t _crc_timestamp;
 
     uint64_t _last_read;
     uint8_t _num_channels;
