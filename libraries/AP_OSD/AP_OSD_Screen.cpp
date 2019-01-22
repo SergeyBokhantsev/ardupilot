@@ -157,7 +157,11 @@ const AP_Param::GroupInfo AP_OSD_Screen::var_info[] = {
 };
 
 // constructor
-AP_OSD_Screen::AP_OSD_Screen()
+AP_OSD_Screen::AP_OSD_Screen() :
+    gps_display_cycles(0),
+    gps_display(true),
+    wattage_value(0),
+    wattage_cycles(0)
 {
 }
 
@@ -392,6 +396,30 @@ void AP_OSD_Screen::draw_current(uint8_t x, uint8_t y)
     AP_BattMonitor &battery = AP_BattMonitor::battery();
     float amps = battery.current_amps();
     backend->write(x, y, false, "%2.1f%c", amps, SYM_AMP);
+}
+
+void AP_OSD_Screen::draw_wattage(uint8_t x, uint8_t y)
+{    
+    AP_BattMonitor &battery = AP_BattMonitor::battery();
+    float amps = battery.current_amps();
+    float v = battery.voltage();
+    float power = amps * v;
+    
+    wattage_value += power;
+    
+    // 2 Hz refresh rate
+    if (++wattage_cycles == 5){        
+        backend->write(x, y, false, "%3d%c", wattage_value / wattage_cycles, 0xAE);
+        wattage_cycles = 0;
+        wattage_value = 0f;
+    }
+}
+
+void AP_OSD_Screen::draw_wh_consumed(uint8_t x, uint8_t y)
+{
+    AP_BattMonitor &battery = AP_BattMonitor::battery();
+    float wh = battery.consumed_wh();
+    backend->write(x, y, false, "%3.1f%c", wh, 0xAB);
 }
 
 void AP_OSD_Screen::draw_fltmode(uint8_t x, uint8_t y)
@@ -745,7 +773,7 @@ void AP_OSD_Screen::draw_gps_latitude(uint8_t x, uint8_t y)
     dec_portion = loc.lat / 10000000L;
     frac_portion = abs_lat - labs(dec_portion)*10000000UL;
 
-    if (check_option(AP_OSD::OPTION_SHORT_GPS_LATLON) {
+    if (check_option(AP_OSD::OPTION_SHORT_GPS_LATLON)) {
         backend->write(x, y, false, ".%07ld", (long)frac_portion);
     } else {
         backend->write(x, y, false, "%c%4ld.%07ld", SYM_GPS_LAT, (long)dec_portion,(long)frac_portion);
@@ -766,7 +794,7 @@ void AP_OSD_Screen::draw_gps_longitude(uint8_t x, uint8_t y)
     dec_portion = loc.lng / 10000000L;
     frac_portion = abs_lon - labs(dec_portion)*10000000UL;
     
-    if (check_option(AP_OSD::OPTION_SHORT_GPS_LATLON) {
+    if (check_option(AP_OSD::OPTION_SHORT_GPS_LATLON)) {
         backend->write(x, y, false, ".%07ld", (long)frac_portion);
     } else {    
         backend->write(x, y, false, "%c%4ld.%07ld", SYM_GPS_LONG, (long)dec_portion,(long)frac_portion);
@@ -835,6 +863,8 @@ void AP_OSD_Screen::draw(void)
     DRAW_SETTING(home);
     DRAW_SETTING(roll_angle);
     DRAW_SETTING(pitch_angle);
+    DRAW_SETTING(wattage);
+    DRAW_SETTING(wh_consumed);
 
 #ifdef HAVE_AP_BLHELI_SUPPORT
     DRAW_SETTING(blh_temp);

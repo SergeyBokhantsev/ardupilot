@@ -77,6 +77,10 @@ private:
     uint16_t gps_display_cycles;
     void gps_latlon_visibility_tick();
     
+    // wattage
+    float wattage_value;
+    uint16_t wattage_cycles;
+    
     AP_OSD_Setting altitude{true, 23, 8};
     AP_OSD_Setting bat_volt{true, 24, 1};
     AP_OSD_Setting rssi{true, 1, 1};
@@ -94,6 +98,8 @@ private:
     AP_OSD_Setting wind{false, 2, 12};
     AP_OSD_Setting aspeed{false, 2, 13};
     AP_OSD_Setting vspeed{true, 24, 9};
+    AP_OSD_Setting wattage{true, 5, 5};
+    AP_OSD_Setting wh_consumed{true, 5, 5};
 
 #ifdef HAVE_AP_BLHELI_SUPPORT
     AP_OSD_Setting blh_temp {false, 24, 13};
@@ -138,7 +144,9 @@ private:
     void draw_wind(uint8_t x, uint8_t y);
     void draw_aspeed(uint8_t x, uint8_t y);
     void draw_vspeed(uint8_t x, uint8_t y);
-
+    void draw_wattage(uint8_t x, uint8_t y);
+    void draw_wh_consumed(uint8_t x, uint8_t y);
+    
     //helper functions
     void draw_speed_vector(uint8_t x, uint8_t y, Vector2f v, int32_t yaw);
     void draw_distance(uint8_t x, uint8_t y, float distance);
