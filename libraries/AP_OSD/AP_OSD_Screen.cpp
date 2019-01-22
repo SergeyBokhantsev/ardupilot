@@ -153,6 +153,10 @@ const AP_Param::GroupInfo AP_OSD_Screen::var_info[] = {
     // @Path: AP_OSD_Setting.cpp
     AP_SUBGROUPINFO(pitch_angle, "PITCH", 27, AP_OSD_Screen, AP_OSD_Setting),
 
+    // SB Custom
+    AP_SUBGROUPINFO(wattage, "POWER_W", 28, AP_OSD_Screen, AP_OSD_Setting),
+    AP_SUBGROUPINFO(wh_consumed, "USED_WH", 29, AP_OSD_Screen, AP_OSD_Setting),
+    
     AP_GROUPEND
 };
 
@@ -175,6 +179,8 @@ AP_OSD_Screen::AP_OSD_Screen()
 #define SYM_VOLT  0x06
 #define SYM_AMP   0x9A
 #define SYM_MAH   0x07
+#define SYM_WATT  0xAE
+#define SYM_WATHR 0xAB
 #define SYM_MS    0x9F
 #define SYM_FS    0x99
 #define SYM_KMH   0xA1
@@ -392,6 +398,29 @@ void AP_OSD_Screen::draw_current(uint8_t x, uint8_t y)
     AP_BattMonitor &battery = AP_BattMonitor::battery();
     float amps = battery.current_amps();
     backend->write(x, y, false, "%2.1f%c", amps, SYM_AMP);
+}
+
+void AP_OSD_Screen::draw_wattage(uint8_t x, uint8_t y)
+{    
+    AP_BattMonitor &battery = AP_BattMonitor::battery();
+    float amps = battery.current_amps();
+    float v = battery.voltage();
+    wattage_ctx.cumulative_value += v * amps;
+    
+    // 5 cycles averaging rate (i.e. 2 Hz screen update)
+    if (++wattage_ctx.cumulative_counter > 5) {
+        wattage_ctx.mean_value = (uint16_t)(wattage_ctx.cumulative_value / wattage_ctx.cumulative_counter);
+        wattage_ctx.cumulative_value = wattage_ctx.cumulative_counter = 0;
+    }
+    
+    backend->write(x, y, false, "%4d%c", wattage_ctx.mean_value, SYM_WATT);
+}
+
+void AP_OSD_Screen::draw_wh_consumed(uint8_t x, uint8_t y)
+{
+    AP_BattMonitor &battery = AP_BattMonitor::battery();
+    float wh = battery.consumed_wh();
+    backend->write(x, y, false, "%3.1f%c", wh, SYM_WATHR);
 }
 
 void AP_OSD_Screen::draw_fltmode(uint8_t x, uint8_t y)
@@ -717,6 +746,10 @@ void AP_OSD_Screen::draw_blh_amps(uint8_t x, uint8_t y)
 
 void AP_OSD_Screen::draw_gps_latitude(uint8_t x, uint8_t y)
 {
+    if (check_option(AP_OSD::OPTION_PERIODIC_GPS_LATLON) && !gps_lat_lon_ctx.visible) {
+        return;
+    }
+
     AP_GPS & gps = AP::gps();
     const Location &loc = gps.location();   // loc.lat and loc.lng
     int32_t dec_portion, frac_portion;
@@ -725,11 +758,19 @@ void AP_OSD_Screen::draw_gps_latitude(uint8_t x, uint8_t y)
     dec_portion = loc.lat / 10000000L;
     frac_portion = abs_lat - labs(dec_portion)*10000000UL;
 
-    backend->write(x, y, false, "%c%4ld.%07ld", SYM_GPS_LAT, (long)dec_portion,(long)frac_portion);
+    if (check_option(AP_OSD::OPTION_SHORT_GPS_LATLON)) {
+        backend->write(x, y, false, ".%07ld", (long)frac_portion);
+    } else {
+        backend->write(x, y, false, "%c%4ld.%07ld", SYM_GPS_LAT, (long)dec_portion,(long)frac_portion);
+    }
 }
 
 void AP_OSD_Screen::draw_gps_longitude(uint8_t x, uint8_t y)
 {
+    if (check_option(AP_OSD::OPTION_PERIODIC_GPS_LATLON) && !gps_lat_lon_ctx.visible) {
+        return;
+    }
+    
     AP_GPS & gps = AP::gps();
     const Location &loc = gps.location();   // loc.lat and loc.lng
     int32_t dec_portion, frac_portion;
@@ -737,8 +778,12 @@ void AP_OSD_Screen::draw_gps_longitude(uint8_t x, uint8_t y)
 
     dec_portion = loc.lng / 10000000L;
     frac_portion = abs_lon - labs(dec_portion)*10000000UL;
-
-    backend->write(x, y, false, "%c%4ld.%07ld", SYM_GPS_LONG, (long)dec_portion,(long)frac_portion);
+    
+    if (check_option(AP_OSD::OPTION_SHORT_GPS_LATLON)) {
+        backend->write(x, y, false, ".%07ld", (long)frac_portion);
+    } else {    
+        backend->write(x, y, false, "%c%4ld.%07ld", SYM_GPS_LONG, (long)dec_portion,(long)frac_portion);
+    }
 }
 
 void AP_OSD_Screen::draw_roll_angle(uint8_t x, uint8_t y)
@@ -779,6 +824,8 @@ void AP_OSD_Screen::draw(void)
         return;
     }
 
+    gps_lat_lon_ctx.tick();
+    
     //Note: draw order should be optimized.
     //Big and less important items should be drawn first,
     //so they will not overwrite more important ones.
@@ -801,6 +848,8 @@ void AP_OSD_Screen::draw(void)
     DRAW_SETTING(home);
     DRAW_SETTING(roll_angle);
     DRAW_SETTING(pitch_angle);
+    DRAW_SETTING(wattage);
+    DRAW_SETTING(wh_consumed);
 
 #ifdef HAVE_AP_BLHELI_SUPPORT
     DRAW_SETTING(blh_temp);

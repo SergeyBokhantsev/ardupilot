@@ -72,6 +72,34 @@ private:
     //typical fpv camera has 80deg vertical field of view, 16 row of chars
     static constexpr float ah_pitch_rad_to_char = 16.0f/(DEG_TO_RAD * 80);
 
+    struct {
+        bool visible;
+        uint16_t ticks_count;
+        
+        void tick()
+        {
+            if (visible) {            
+                if (ticks_count > 10) {
+                    ticks_count = 0;
+                    visible = false;
+                }            
+            } else {
+                if (ticks_count > 100) {
+                    ticks_count = 0;
+                    visible = true;
+                }
+            }
+        
+            ticks_count ++;
+        }
+    } gps_lat_lon_ctx;
+    
+    struct {
+        uint16_t mean_value;
+        float cumulative_value;
+        uint8_t cumulative_counter;        
+    } wattage_ctx;
+    
     AP_OSD_Setting altitude{true, 23, 8};
     AP_OSD_Setting bat_volt{true, 24, 1};
     AP_OSD_Setting rssi{true, 1, 1};
@@ -89,6 +117,8 @@ private:
     AP_OSD_Setting wind{false, 2, 12};
     AP_OSD_Setting aspeed{false, 2, 13};
     AP_OSD_Setting vspeed{true, 24, 9};
+    AP_OSD_Setting wattage{true, 5, 5};
+    AP_OSD_Setting wh_consumed{true, 5, 5};
 
 #ifdef HAVE_AP_BLHELI_SUPPORT
     AP_OSD_Setting blh_temp {false, 24, 13};
@@ -133,7 +163,9 @@ private:
     void draw_wind(uint8_t x, uint8_t y);
     void draw_aspeed(uint8_t x, uint8_t y);
     void draw_vspeed(uint8_t x, uint8_t y);
-
+    void draw_wattage(uint8_t x, uint8_t y);
+    void draw_wh_consumed(uint8_t x, uint8_t y);
+    
     //helper functions
     void draw_speed_vector(uint8_t x, uint8_t y, Vector2f v, int32_t yaw);
     void draw_distance(uint8_t x, uint8_t y, float distance);
@@ -193,6 +225,8 @@ public:
         OPTION_DECIMAL_PACK = 1U<<0,
         OPTION_INVERTED_WIND = 1U<<1,
         OPTION_INVERTED_AH_ROLL = 1U<<2,
+        OPTION_SHORT_GPS_LATLON = 1U<<3,
+        OPTION_PERIODIC_GPS_LATLON = 1U<<4,
     };
 
     AP_Int32 options;
