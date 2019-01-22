@@ -715,8 +715,28 @@ void AP_OSD_Screen::draw_blh_amps(uint8_t x, uint8_t y)
 }
 #endif  //HAVE_AP_BLHELI_SUPPORT
 
+void AP_OSD_Screen::gps_latlon_visibility_tick()
+{
+    if (gps_display) {            
+        if (gps_display_cycles > 10) {
+            gps_display_cycles = 0;
+            gps_display = false;
+        }            
+    } else {
+        if (gps_display_cycles > 100) {
+            gps_display_cycles = 0;
+            gps_display = true;
+        }
+    }
+    gps_display_cycles ++;
+}
+
 void AP_OSD_Screen::draw_gps_latitude(uint8_t x, uint8_t y)
 {
+    if (check_option(AP_OSD::OPTION_RARE_GPS_LATLON) && !gps_display) {
+        return;
+    }
+
     AP_GPS & gps = AP::gps();
     const Location &loc = gps.location();   // loc.lat and loc.lng
     int32_t dec_portion, frac_portion;
@@ -725,11 +745,19 @@ void AP_OSD_Screen::draw_gps_latitude(uint8_t x, uint8_t y)
     dec_portion = loc.lat / 10000000L;
     frac_portion = abs_lat - labs(dec_portion)*10000000UL;
 
-    backend->write(x, y, false, "%c%4ld.%07ld", SYM_GPS_LAT, (long)dec_portion,(long)frac_portion);
+    if (check_option(AP_OSD::OPTION_SHORT_GPS_LATLON) {
+        backend->write(x, y, false, ".%07ld", (long)frac_portion);
+    } else {
+        backend->write(x, y, false, "%c%4ld.%07ld", SYM_GPS_LAT, (long)dec_portion,(long)frac_portion);
+    }
 }
 
 void AP_OSD_Screen::draw_gps_longitude(uint8_t x, uint8_t y)
 {
+    if (check_option(AP_OSD::OPTION_RARE_GPS_LATLON) && !gps_display) {
+        return;
+    }
+    
     AP_GPS & gps = AP::gps();
     const Location &loc = gps.location();   // loc.lat and loc.lng
     int32_t dec_portion, frac_portion;
@@ -737,8 +765,12 @@ void AP_OSD_Screen::draw_gps_longitude(uint8_t x, uint8_t y)
 
     dec_portion = loc.lng / 10000000L;
     frac_portion = abs_lon - labs(dec_portion)*10000000UL;
-
-    backend->write(x, y, false, "%c%4ld.%07ld", SYM_GPS_LONG, (long)dec_portion,(long)frac_portion);
+    
+    if (check_option(AP_OSD::OPTION_SHORT_GPS_LATLON) {
+        backend->write(x, y, false, ".%07ld", (long)frac_portion);
+    } else {    
+        backend->write(x, y, false, "%c%4ld.%07ld", SYM_GPS_LONG, (long)dec_portion,(long)frac_portion);
+    }
 }
 
 void AP_OSD_Screen::draw_roll_angle(uint8_t x, uint8_t y)
@@ -779,6 +811,8 @@ void AP_OSD_Screen::draw(void)
         return;
     }
 
+    gps_latlon_visibility_tick();
+    
     //Note: draw order should be optimized.
     //Big and less important items should be drawn first,
     //so they will not overwrite more important ones.
