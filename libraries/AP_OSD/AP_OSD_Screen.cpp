@@ -161,12 +161,7 @@ const AP_Param::GroupInfo AP_OSD_Screen::var_info[] = {
 };
 
 // constructor
-AP_OSD_Screen::AP_OSD_Screen() :
-    gps_display_cycles(0),
-    gps_display(true),
-    wattage_mean(0),
-    wattage_value(0),
-    wattage_cycles(0)
+AP_OSD_Screen::AP_OSD_Screen()
 {
 }
 
@@ -184,6 +179,8 @@ AP_OSD_Screen::AP_OSD_Screen() :
 #define SYM_VOLT  0x06
 #define SYM_AMP   0x9A
 #define SYM_MAH   0x07
+#define SYM_WATT  0xAE
+#define SYM_WATHR 0xAB
 #define SYM_MS    0x9F
 #define SYM_FS    0x99
 #define SYM_KMH   0xA1
@@ -408,24 +405,22 @@ void AP_OSD_Screen::draw_wattage(uint8_t x, uint8_t y)
     AP_BattMonitor &battery = AP_BattMonitor::battery();
     float amps = battery.current_amps();
     float v = battery.voltage();
-    float power = amps * v;    
-    wattage_value += power;
+    wattage_ctx.cumulative_value += v * amps;
     
     // 5 cycles averaging rate (i.e. 2 Hz screen update)
-    if (++wattage_cycles == 5){  
-        wattage_mean = (uint16_t)(wattage_value / wattage_cycles);        
-        wattage_cycles = 0;
-        wattage_value = 0;
+    if (++wattage_ctx.cumulative_counter > 5) {
+        wattage_ctx.mean_value = (uint16_t)(wattage_ctx.cumulative_value / wattage_ctx.cumulative_counter);
+        wattage_ctx.cumulative_value = wattage_ctx.cumulative_counter = 0;
     }
     
-    backend->write(x, y, false, "%3d%c", wattage_mean, 0xAE);
+    backend->write(x, y, false, "%4d%c", wattage_ctx.mean_value, SYM_WATT);
 }
 
 void AP_OSD_Screen::draw_wh_consumed(uint8_t x, uint8_t y)
 {
     AP_BattMonitor &battery = AP_BattMonitor::battery();
     float wh = battery.consumed_wh();
-    backend->write(x, y, false, "%3.1f%c", wh, 0xAB);
+    backend->write(x, y, false, "%3.1f%c", wh, SYM_WATHR);
 }
 
 void AP_OSD_Screen::draw_fltmode(uint8_t x, uint8_t y)
@@ -749,25 +744,9 @@ void AP_OSD_Screen::draw_blh_amps(uint8_t x, uint8_t y)
 }
 #endif  //HAVE_AP_BLHELI_SUPPORT
 
-void AP_OSD_Screen::gps_latlon_visibility_tick()
-{
-    if (gps_display) {            
-        if (gps_display_cycles > 10) {
-            gps_display_cycles = 0;
-            gps_display = false;
-        }            
-    } else {
-        if (gps_display_cycles > 100) {
-            gps_display_cycles = 0;
-            gps_display = true;
-        }
-    }
-    gps_display_cycles ++;
-}
-
 void AP_OSD_Screen::draw_gps_latitude(uint8_t x, uint8_t y)
 {
-    if (check_option(AP_OSD::OPTION_RARE_GPS_LATLON) && !gps_display) {
+    if (check_option(AP_OSD::OPTION_PERIODIC_GPS_LATLON) && !gps_lat_lon_ctx.visible) {
         return;
     }
 
@@ -788,7 +767,7 @@ void AP_OSD_Screen::draw_gps_latitude(uint8_t x, uint8_t y)
 
 void AP_OSD_Screen::draw_gps_longitude(uint8_t x, uint8_t y)
 {
-    if (check_option(AP_OSD::OPTION_RARE_GPS_LATLON) && !gps_display) {
+    if (check_option(AP_OSD::OPTION_PERIODIC_GPS_LATLON) && !gps_lat_lon_ctx.visible) {
         return;
     }
     
@@ -845,7 +824,7 @@ void AP_OSD_Screen::draw(void)
         return;
     }
 
-    gps_latlon_visibility_tick();
+    gps_lat_lon_ctx.tick();
     
     //Note: draw order should be optimized.
     //Big and less important items should be drawn first,

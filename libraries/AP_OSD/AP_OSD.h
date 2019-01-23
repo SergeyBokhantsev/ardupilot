@@ -72,15 +72,33 @@ private:
     //typical fpv camera has 80deg vertical field of view, 16 row of chars
     static constexpr float ah_pitch_rad_to_char = 16.0f/(DEG_TO_RAD * 80);
 
-    // OPTION_RARE_GPS_LATLON
-    bool gps_display;
-    uint16_t gps_display_cycles;
-    void gps_latlon_visibility_tick();
+    struct {
+        bool visible;
+        uint16_t ticks_count;
+        
+        void tick()
+        {
+            if (visible) {            
+                if (ticks_count > 10) {
+                    ticks_count = 0;
+                    visible = false;
+                }            
+            } else {
+                if (ticks_count > 100) {
+                    ticks_count = 0;
+                    visible = true;
+                }
+            }
+        
+            ticks_count ++;
+        }
+    } gps_lat_lon_ctx;
     
-    // wattage
-    uint16_t wattage_mean;
-    float wattage_value;
-    uint16_t wattage_cycles;
+    struct {
+        uint16_t mean_value;
+        float cumulative_value;
+        uint8_t cumulative_counter;        
+    } wattage_ctx
     
     AP_OSD_Setting altitude{true, 23, 8};
     AP_OSD_Setting bat_volt{true, 24, 1};
@@ -207,10 +225,8 @@ public:
         OPTION_DECIMAL_PACK = 1U<<0,
         OPTION_INVERTED_WIND = 1U<<1,
         OPTION_INVERTED_AH_ROLL = 1U<<2,
-        
-        //SB Options
-        OPTION_SHORT_GPS_LATLON = 1U<<20,
-        OPTION_RARE_GPS_LATLON = 1U<<21,
+        OPTION_SHORT_GPS_LATLON = 1U<<3,
+        OPTION_PERIODIC_GPS_LATLON = 1U<<4,
     };
 
     AP_Int32 options;
