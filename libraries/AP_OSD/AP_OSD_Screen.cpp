@@ -153,6 +153,10 @@ const AP_Param::GroupInfo AP_OSD_Screen::var_info[] = {
     // @Path: AP_OSD_Setting.cpp
     AP_SUBGROUPINFO(pitch_angle, "PITCH", 27, AP_OSD_Screen, AP_OSD_Setting),
 
+    // SB Custom
+    AP_SUBGROUPINFO(wattage, "POWER_W", 28, AP_OSD_Screen, AP_OSD_Setting),
+    AP_SUBGROUPINFO(wh_consumed, "USED_WH", 29, AP_OSD_Screen, AP_OSD_Setting),
+    
     AP_GROUPEND
 };
 
@@ -411,7 +415,7 @@ void AP_OSD_Screen::draw_wattage(uint8_t x, uint8_t y)
     if (++wattage_cycles == 5){        
         backend->write(x, y, false, "%3d%c", wattage_value / wattage_cycles, 0xAE);
         wattage_cycles = 0;
-        wattage_value = 0f;
+        wattage_value = 0;
     }
 }
 
