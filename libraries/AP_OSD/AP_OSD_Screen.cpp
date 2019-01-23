@@ -164,6 +164,7 @@ const AP_Param::GroupInfo AP_OSD_Screen::var_info[] = {
 AP_OSD_Screen::AP_OSD_Screen() :
     gps_display_cycles(0),
     gps_display(true),
+    wattage_mean(0),
     wattage_value(0),
     wattage_cycles(0)
 {
@@ -407,16 +408,17 @@ void AP_OSD_Screen::draw_wattage(uint8_t x, uint8_t y)
     AP_BattMonitor &battery = AP_BattMonitor::battery();
     float amps = battery.current_amps();
     float v = battery.voltage();
-    float power = amps * v;
-    
+    float power = amps * v;    
     wattage_value += power;
     
-    // 2 Hz refresh rate
-    if (++wattage_cycles == 5){        
-        backend->write(x, y, false, "%3d%c", (uint16_t)(wattage_value / wattage_cycles), 0xAE);
+    // 5 cycles averaging rate (i.e. 2 Hz screen update)
+    if (++wattage_cycles == 5){  
+        wattage_mean = (uint16_t)(wattage_value / wattage_cycles);        
         wattage_cycles = 0;
         wattage_value = 0;
     }
+    
+    backend->write(x, y, false, "%3d%c", wattage_mean, 0xAE);
 }
 
 void AP_OSD_Screen::draw_wh_consumed(uint8_t x, uint8_t y)

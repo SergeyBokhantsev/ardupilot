@@ -78,6 +78,7 @@ private:
     void gps_latlon_visibility_tick();
     
     // wattage
+    uint16_t wattage_mean;
     float wattage_value;
     uint16_t wattage_cycles;
     
