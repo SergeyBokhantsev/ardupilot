@@ -413,7 +413,7 @@ void AP_OSD_Screen::draw_wattage(uint8_t x, uint8_t y)
     
     // 2 Hz refresh rate
     if (++wattage_cycles == 5){        
-        backend->write(x, y, false, "%3d%c", wattage_value / wattage_cycles, 0xAE);
+        backend->write(x, y, false, "%3d%c", (uint16_t)(wattage_value / wattage_cycles), 0xAE);
         wattage_cycles = 0;
         wattage_value = 0;
     }
