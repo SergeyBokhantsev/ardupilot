@@ -130,6 +130,7 @@ private:
     AP_OSD_Setting gps_longitude{true, 9, 14};
     AP_OSD_Setting roll_angle{false, 0, 0};
     AP_OSD_Setting pitch_angle{false, 0, 0};
+    AP_OSD_Setting baro_temp{false, 0, 0};
 
     bool check_option(uint32_t option);
 
@@ -180,6 +181,7 @@ private:
     void draw_gps_longitude(uint8_t x, uint8_t y);
     void draw_roll_angle(uint8_t x, uint8_t y);
     void draw_pitch_angle(uint8_t x, uint8_t y);
+    void draw_baro_temp(uint8_t x, uint8_t y);
 };
 
 class AP_OSD {
@@ -225,8 +227,10 @@ public:
         OPTION_DECIMAL_PACK = 1U<<0,
         OPTION_INVERTED_WIND = 1U<<1,
         OPTION_INVERTED_AH_ROLL = 1U<<2,
-        OPTION_SHORT_GPS_LATLON = 1U<<3,
-        OPTION_PERIODIC_GPS_LATLON = 1U<<4,
+        
+        // SB
+        OPTION_SHORT_GPS_LATLON = 1U<<20,
+        OPTION_PERIODIC_GPS_LATLON = 1U<<21,
     };
 
     AP_Int32 options;

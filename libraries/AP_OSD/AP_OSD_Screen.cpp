@@ -28,6 +28,7 @@
 #include <AP_Math/AP_Math.h>
 #include <AP_RSSI/AP_RSSI.h>
 #include <AP_Notify/AP_Notify.h>
+#include <AP_Baro/AP_Baro.h>
 
 #include <ctype.h>
 #include <GCS_MAVLink/GCS.h>
@@ -156,6 +157,7 @@ const AP_Param::GroupInfo AP_OSD_Screen::var_info[] = {
     // SB Custom
     AP_SUBGROUPINFO(wattage, "POWER_W", 28, AP_OSD_Screen, AP_OSD_Setting),
     AP_SUBGROUPINFO(wh_consumed, "USED_WH", 29, AP_OSD_Screen, AP_OSD_Setting),
+    AP_SUBGROUPINFO(baro_temp, "BARO_T", 30, AP_OSD_Screen, AP_OSD_Setting),
     
     AP_GROUPEND
 };
@@ -816,6 +818,13 @@ void AP_OSD_Screen::draw_pitch_angle(uint8_t x, uint8_t y)
     backend->write(x, y, false, "%c%3d%c", p, pitch, SYM_DEGR);
 }
 
+void AP_OSD_Screen::draw_baro_temp(uint8_t x, uint8_t y)
+{
+    AP_Baro* baro = AP_Baro::get_instance();
+    float t = baro->get_temperature();
+    backend->write(x, y, false, "%2.1f%c", t, SYM_DEGR);
+}
+
 #define DRAW_SETTING(n) if (n.enabled) draw_ ## n(n.xpos, n.ypos)
 
 void AP_OSD_Screen::draw(void)
@@ -859,4 +868,5 @@ void AP_OSD_Screen::draw(void)
 
     DRAW_SETTING(gps_latitude);
     DRAW_SETTING(gps_longitude);
+    DRAW_SETTING(baro_temp);
 }
