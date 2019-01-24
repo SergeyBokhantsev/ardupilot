@@ -98,7 +98,7 @@ private:
         uint16_t mean_value;
         float cumulative_value;
         uint8_t cumulative_counter;        
-    } wattage_ctx
+    } wattage_ctx;
     
     AP_OSD_Setting altitude{true, 23, 8};
     AP_OSD_Setting bat_volt{true, 24, 1};
