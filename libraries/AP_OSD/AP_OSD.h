@@ -95,10 +95,22 @@ private:
     } gps_lat_lon_ctx;
     
     struct {
-        uint16_t mean_value;
-        float cumulative_value;
-        uint8_t cumulative_counter;        
-    } wattage_ctx;
+        public:
+            float apply(float value, int averaging)
+            {
+                cumulative += value;
+                if (++counter >= averaging) {
+                    average = cumulative / counter;
+                    cumulative = counter = 0;
+                }                
+                return average;
+            }
+        
+        private:
+            float average; 
+            float cumulative;
+            uint8_t counter;                   
+    } wattage_ctx, current_ctx;
     
     AP_OSD_Setting altitude{true, 23, 8};
     AP_OSD_Setting bat_volt{true, 24, 1};
@@ -220,6 +232,7 @@ public:
 
     AP_Int8 warn_rssi;
     AP_Int8 warn_nsat;
+    AP_Int8 warn_amps;
     AP_Float warn_batvolt;
     AP_Int8 msgtime_s;
 

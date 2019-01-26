@@ -398,8 +398,10 @@ void AP_OSD_Screen::draw_rssi(uint8_t x, uint8_t y)
 void AP_OSD_Screen::draw_current(uint8_t x, uint8_t y)
 {
     AP_BattMonitor &battery = AP_BattMonitor::battery();
-    float amps = battery.current_amps();
-    backend->write(x, y, false, "%2.1f%c", amps, SYM_AMP);
+    float amps = battery.current_amps();    
+    // 5 cycles averaging rate (i.e. 2 Hz screen update)
+    float amps_average = current_ctx.apply(amps, 5);    
+    backend->write(x, y, amps >= osd->warn_amps, "%2.1f%c", amps_average, SYM_AMP);
 }
 
 void AP_OSD_Screen::draw_wattage(uint8_t x, uint8_t y)
@@ -407,15 +409,9 @@ void AP_OSD_Screen::draw_wattage(uint8_t x, uint8_t y)
     AP_BattMonitor &battery = AP_BattMonitor::battery();
     float amps = battery.current_amps();
     float v = battery.voltage();
-    wattage_ctx.cumulative_value += v * amps;
-    
     // 5 cycles averaging rate (i.e. 2 Hz screen update)
-    if (++wattage_ctx.cumulative_counter > 5) {
-        wattage_ctx.mean_value = (uint16_t)(wattage_ctx.cumulative_value / wattage_ctx.cumulative_counter);
-        wattage_ctx.cumulative_value = wattage_ctx.cumulative_counter = 0;
-    }
-    
-    backend->write(x, y, false, "%4d%c", wattage_ctx.mean_value, SYM_WATT);
+    int16_t pwr_average = (int16_t)wattage_ctx.apply(v * amps, 5);    
+    backend->write(x, y, false, "%4d%c", pwr_average, SYM_WATT);
 }
 
 void AP_OSD_Screen::draw_wh_consumed(uint8_t x, uint8_t y)
@@ -512,15 +508,14 @@ void AP_OSD_Screen::draw_speed_vector(uint8_t x, uint8_t y,Vector2f v, int32_t y
         arrow = SYM_ARROW_START + ((angle + interval / 2) / interval) % SYM_ARROW_COUNT;
     }
 
-    backend->write(x, y, false, "%c%3d%c", arrow, (int)u_scale(SPEED, v_length), u_icon(SPEED));
+    backend->write(x, y, false, "%3d%c%c", (int)u_scale(SPEED, v_length), u_icon(SPEED), arrow);
 }
 
 void AP_OSD_Screen::draw_gspeed(uint8_t x, uint8_t y)
 {
     AP_AHRS &ahrs = AP::ahrs();
     Vector2f v = ahrs.groundspeed_vector();
-    backend->write(x, y, false, "%c", SYM_GSPD);
-    draw_speed_vector(x + 1, y, v, ahrs.yaw_sensor);
+    draw_speed_vector(x, y, v, ahrs.yaw_sensor);
 }
 
 //Thanks to betaflight/inav for simple and clean artificial horizon visual design
@@ -682,19 +677,33 @@ void AP_OSD_Screen::draw_vspeed(uint8_t x, uint8_t y)
         vspd = -v.z;
     } else {
         vspd = AP::baro().get_climb_rate();
-    }
+    }    
     char sym;
-    if (vspd > 3.0f) {
-        sym = SYM_UP_UP;
-    } else if (vspd >=0.0f) {
-        sym = SYM_UP;
-    } else if (vspd >= -3.0f) {
-        sym = SYM_DOWN;
-    } else {
-        sym = SYM_DOWN_DOWN;
-    }
-    vspd = fabsf(vspd);
-    backend->write(x, y, false, "%c%2d%c", sym, (int)u_scale(VSPEED, vspd), u_icon(VSPEED));
+    if (vspd < -4.8f)
+        sym = 103; 
+    else if (vspd < -3.6f)
+        sym = 104; 
+    else if (vspd < -2.4f)
+        sym = 105; 
+    else if (vspd < -1.2f)
+        sym = 106; 
+    else if (vspd < -0.5f)
+        sym = 107; 
+    else if (vspd <= 0.5f)
+        sym = 108;
+    else if (vspd < 1.2f)
+        sym = 109;
+    else if (vspd < 2.4f)
+        sym = 110;
+    else if (vspd < 3.6f)
+        sym = 111;
+    else if (vspd < 4.8f)
+        sym = 96;
+    else
+        sym = 97;
+    
+    vspd = fabsf(vspd);    
+    backend->write(x, y, vspd > 3.0f, "%c%2.1f%c", sym, u_scale(VSPEED, vspd), u_icon(VSPEED));
 }
 
 #ifdef HAVE_AP_BLHELI_SUPPORT

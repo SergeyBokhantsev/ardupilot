@@ -135,6 +135,12 @@ const AP_Param::GroupInfo AP_OSD::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("_MSG_TIME", 16, AP_OSD, msgtime_s, 10),
 
+    // @Param: _W_AMPS
+    // @DisplayName: 
+    // @Description: 
+    // @Range: 0 100
+    // @User: Standard
+    AP_GROUPINFO("_W_AMPS", 17, AP_OSD, warn_amps, 15),
 
     AP_GROUPEND
 };
