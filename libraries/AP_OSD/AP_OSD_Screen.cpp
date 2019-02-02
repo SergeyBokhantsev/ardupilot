@@ -212,8 +212,8 @@ const AP_Param::GroupInfo AP_OSD_Screen::var_info[] = {
     AP_SUBGROUPINFO(aspd2, "ASPD2", 41, AP_OSD_Screen, AP_OSD_Setting),
     
     // SB Custom
-    AP_SUBGROUPINFO(wattage, "POWER_W", 28, AP_OSD_Screen, AP_OSD_Setting),
-    AP_SUBGROUPINFO(wh_consumed, "USED_WH", 29, AP_OSD_Screen, AP_OSD_Setting),
+    AP_SUBGROUPINFO(wattage, "POWER_W", 42, AP_OSD_Screen, AP_OSD_Setting),
+    AP_SUBGROUPINFO(wh_consumed, "USED_WH", 43, AP_OSD_Screen, AP_OSD_Setting),
 
     AP_GROUPEND
 };
