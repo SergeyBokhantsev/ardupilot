@@ -135,6 +135,28 @@ private:
             uint8_t remain_ticks;
     } flt_mode_ctx;
     
+    struct {
+        public:
+            void set(uint8_t value){
+                array[loc] = value;
+                
+                if (++loc == 50)
+                    loc = 0;                
+            }
+            
+            uint8_t get(){                
+                float result = 0;
+                for(int i=0; i<50; ++i){
+                    result += array[i];
+                }                
+                return (uint8_t)(result / 50);
+            }
+        
+        private:
+            uint8_t array[50];
+            uint8_t loc;
+    } avrg_fly_time, avrg_fly_fwrd_time, avrg_fly_fwrd_dist;
+    
     AP_OSD_Setting altitude{true, 23, 8};
     AP_OSD_Setting bat_volt{true, 24, 1};
     AP_OSD_Setting rssi{true, 1, 1};
@@ -155,6 +177,7 @@ private:
     AP_OSD_Setting vspeed{true, 24, 9};
     AP_OSD_Setting wattage{true, 5, 5};
     AP_OSD_Setting wh_consumed{true, 5, 5};
+    AP_OSD_Setting estimation{true, 5, 5};
 
 #ifdef HAVE_AP_BLHELI_SUPPORT
     AP_OSD_Setting blh_temp {false, 24, 13};
@@ -215,6 +238,7 @@ private:
     void draw_vspeed(uint8_t x, uint8_t y);
     void draw_wattage(uint8_t x, uint8_t y);
     void draw_wh_consumed(uint8_t x, uint8_t y);
+    void draw_estimation(uint8_t x, uint8_t y);
     
     //helper functions
     void draw_speed_vector(uint8_t x, uint8_t y, Vector2f v, int32_t yaw);
@@ -283,6 +307,7 @@ public:
     AP_Int8 warn_rssi;
     AP_Int8 warn_nsat;
     AP_Int8 warn_amps;
+    AP_Int8 bat_wh;
     AP_Float warn_batvolt;
     AP_Float warn_bat2volt;
     AP_Int8 msgtime_s;

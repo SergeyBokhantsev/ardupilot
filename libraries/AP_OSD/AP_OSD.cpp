@@ -143,6 +143,13 @@ const AP_Param::GroupInfo AP_OSD::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("_W_AMPS", 17, AP_OSD, warn_amps, 15),
 
+    // @Param: _BAT_WH
+    // @DisplayName: 
+    // @Description: Battery capacity Watt-hours
+    // @Range: 0 100
+    // @User: Standard
+    AP_GROUPINFO("_BAT_WH", 18, AP_OSD, bat_wh, 0),    
+    
     AP_GROUPEND
 };
 

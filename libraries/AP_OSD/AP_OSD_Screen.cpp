@@ -214,7 +214,8 @@ const AP_Param::GroupInfo AP_OSD_Screen::var_info[] = {
     // SB Custom
     AP_SUBGROUPINFO(wattage, "POWER_W", 42, AP_OSD_Screen, AP_OSD_Setting),
     AP_SUBGROUPINFO(wh_consumed, "USED_WH", 43, AP_OSD_Screen, AP_OSD_Setting),
-
+    AP_SUBGROUPINFO(estimation, "ESTIMAT", 44, AP_OSD_Screen, AP_OSD_Setting),
+    
     AP_GROUPEND
 };
 
@@ -481,6 +482,52 @@ void AP_OSD_Screen::draw_wh_consumed(uint8_t x, uint8_t y)
     AP_BattMonitor &battery = AP_BattMonitor::battery();
     float wh = battery.consumed_wh();
     backend->write(x, y, false, "%3.1f%c", wh, SYM_WATHR);
+}
+
+void AP_OSD_Screen::draw_estimation(uint8_t x, uint8_t y)
+{
+    float fly_time = 0;
+    float fly_fwd_time = 0;
+    float fly_fwd_dist = 0;
+    bool blink = false;
+    
+    AP_BattMonitor &battery = AP_BattMonitor::battery();
+    float remain_wh = (float)(osd->bat_wh) - battery.consumed_wh();
+    
+    if (remain_wh > 0.0f){
+        float power = battery.current_amps() * battery.voltage();
+        
+        if (power > 0.0f){
+            fly_time = (uint16_t)(remain_wh / power * 3600.0f);
+            avrg_fly_time.set((uint8_t)(fly_time / 60.0f));
+            
+            AP_AHRS &ahrs = AP::ahrs();
+            float spd = ahrs.groundspeed_vector().length();
+            Location loc;
+            
+            if (spd > 1.0f && ahrs.get_position(loc) && ahrs.home_is_set()) {
+                const Location &home_loc = ahrs.get_home();
+                float distance = get_distance(home_loc, loc);
+                
+                fly_fwd_time = (fly_time - distance/spd) / 2.0f;
+                fly_fwd_dist = fly_fwd_time * spd;
+                
+                if (fly_fwd_time < 0.0f){
+                    fly_fwd_time = 0.0f;
+                    fly_fwd_dist = 0.0f;
+                }
+                
+                if (fly_fwd_time < 60.0f){
+                    blink = true;
+                }
+                
+                avrg_fly_fwrd_time.set((uint8_t)(fly_fwd_time / 60.0f));
+                avrg_fly_fwrd_dist.set((uint8_t)(fly_fwd_dist / 100.0f));
+            }
+        }
+    }    
+    
+    backend->write(x, y, blink, "%3d%c%3d%c%3d", avrg_fly_time.get(), 0xCD, avrg_fly_fwrd_time.get(), 0xCD, avrg_fly_fwrd_dist.get());
 }
 
 void AP_OSD_Screen::draw_fltmode(uint8_t x, uint8_t y)
@@ -1081,7 +1128,8 @@ void AP_OSD_Screen::draw(void)
     DRAW_SETTING(flightime);
     DRAW_SETTING(wattage);
     DRAW_SETTING(wh_consumed);
-
+    DRAW_SETTING(estimation);
+    
 #ifdef HAVE_AP_BLHELI_SUPPORT
     DRAW_SETTING(blh_temp);
     DRAW_SETTING(blh_rpm);
