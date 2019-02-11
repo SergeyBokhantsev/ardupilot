@@ -112,6 +112,29 @@ private:
             uint8_t counter;                   
     } wattage_ctx, current_ctx;
     
+    struct {
+        public:
+            bool blink(uint8_t mode, uint8_t blink_ticks)
+            {
+                if (mode != flight_mode){
+                    flight_mode = mode;
+                    remain_ticks = blink_ticks;
+                }
+                
+                bool result = remain_ticks > 0;
+                
+                if (result){
+                    remain_ticks--;
+                }
+                
+                return result;
+            }
+        
+        private:
+            uint8_t flight_mode;
+            uint8_t remain_ticks;
+    } flt_mode_ctx;
+    
     AP_OSD_Setting altitude{true, 23, 8};
     AP_OSD_Setting bat_volt{true, 24, 1};
     AP_OSD_Setting rssi{true, 1, 1};

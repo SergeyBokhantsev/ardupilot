@@ -492,8 +492,11 @@ void AP_OSD_Screen::draw_fltmode(uint8_t x, uint8_t y)
     } else {
         arm = SYM_DISARMED;
     }
+    
+    bool blink = flt_mode_ctx.blink(AP_Notify::flags.flight_mode, 30);
+    
     if (notify) {
-        backend->write(x, y, false, "%s%c", notify->get_flight_mode_str(), arm);
+        backend->write(x, y, blink, "%s%c", notify->get_flight_mode_str(), arm);
     }
 }
 
