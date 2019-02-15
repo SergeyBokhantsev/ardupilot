@@ -137,23 +137,23 @@ private:
     
     struct {
         public:
-            void set(uint8_t value){
+            void set(uint16_t value){
                 array[loc] = value;
                 
                 if (++loc == 50)
                     loc = 0;                
             }
             
-            uint8_t get(){                
+            uint16_t get(){                
                 float result = 0;
                 for(int i=0; i<50; ++i){
                     result += array[i];
-                }                
-                return (uint8_t)(result / 50);
+                }
+                return (uint16_t)(result / 50);
             }
         
         private:
-            uint8_t array[50];
+            uint16_t array[50];
             uint8_t loc;
     } avrg_fly_time, avrg_fly_fwrd_time, avrg_fly_fwrd_dist;
     
