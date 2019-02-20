@@ -215,6 +215,7 @@ const AP_Param::GroupInfo AP_OSD_Screen::var_info[] = {
     AP_SUBGROUPINFO(wattage, "POWER_W", 42, AP_OSD_Screen, AP_OSD_Setting),
     AP_SUBGROUPINFO(wh_consumed, "USED_WH", 43, AP_OSD_Screen, AP_OSD_Setting),
     AP_SUBGROUPINFO(estimation, "ESTIMAT", 44, AP_OSD_Screen, AP_OSD_Setting),
+    AP_SUBGROUPINFO(tilt, "TILT", 45, AP_OSD_Screen, AP_OSD_Setting),
     
     AP_GROUPEND
 };
@@ -482,6 +483,17 @@ void AP_OSD_Screen::draw_wh_consumed(uint8_t x, uint8_t y)
     AP_BattMonitor &battery = AP_BattMonitor::battery();
     float wh = battery.consumed_wh();
     backend->write(x, y, false, "%3.1f%c", wh, SYM_WATHR);
+}
+
+void AP_OSD_Screen::draw_tilt(uint8_t x, uint8_t y)
+{
+    AP_AHRS &ahrs = AP::ahrs();
+    Vector2f tilt = Vector2f((float)ahrs.roll_sensor, (float)ahrs.pitch_sensor);
+    char arrow = SYM_ARROW_START;
+    int32_t angle = wrap_360_cd(DEGX100 * atan2f(tilt.y, tilt.x) + 9000);
+    int32_t interval = 36000 / SYM_ARROW_COUNT;
+    arrow = SYM_ARROW_START + ((angle + interval / 2) / interval) % SYM_ARROW_COUNT;
+    backend->write(x, y, false, "%c%2d%c", arrow, (uint8_t)(tilt.length() / 100.0f), SYM_DEGR);
 }
 
 void AP_OSD_Screen::draw_estimation(uint8_t x, uint8_t y)
@@ -1161,6 +1173,7 @@ void AP_OSD_Screen::draw(void)
     DRAW_SETTING(wattage);
     DRAW_SETTING(wh_consumed);
     DRAW_SETTING(estimation);
+    DRAW_SETTING(tilt);
     
 #ifdef HAVE_AP_BLHELI_SUPPORT
     DRAW_SETTING(blh_temp);
