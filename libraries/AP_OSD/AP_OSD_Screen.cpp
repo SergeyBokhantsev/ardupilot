@@ -34,6 +34,8 @@
 #include <ctype.h>
 #include <GCS_MAVLink/GCS.h>
 
+extern const AP_HAL::HAL& hal;
+
 const AP_Param::GroupInfo AP_OSD_Screen::var_info[] = {
 
     // @Param: ENABLE
@@ -216,6 +218,7 @@ const AP_Param::GroupInfo AP_OSD_Screen::var_info[] = {
     AP_SUBGROUPINFO(wh_consumed, "USED_WH", 43, AP_OSD_Screen, AP_OSD_Setting),
     AP_SUBGROUPINFO(estimation, "ESTIMAT", 44, AP_OSD_Screen, AP_OSD_Setting),
     AP_SUBGROUPINFO(tilt, "TILT", 45, AP_OSD_Screen, AP_OSD_Setting),
+    AP_SUBGROUPINFO(board_vcc, "BRD_VCC", 46, AP_OSD_Screen, AP_OSD_Setting),
     
     AP_GROUPEND
 };
@@ -483,6 +486,12 @@ void AP_OSD_Screen::draw_wh_consumed(uint8_t x, uint8_t y)
     AP_BattMonitor &battery = AP_BattMonitor::battery();
     float wh = battery.consumed_wh();
     backend->write(x, y, false, "%3.1f%c", wh, SYM_WATHR);
+}
+
+void AP_OSD_Screen::draw_board_vcc(uint8_t x, uint8_t y)
+{
+    float vcc = hal.analogin->board_voltage();
+    backend->write(x, y, vcc < 4.5f || vcc > 5.3f, "%1.1f%c", vcc, SYM_VOLT);
 }
 
 void AP_OSD_Screen::draw_tilt(uint8_t x, uint8_t y)
@@ -1174,6 +1183,7 @@ void AP_OSD_Screen::draw(void)
     DRAW_SETTING(wh_consumed);
     DRAW_SETTING(estimation);
     DRAW_SETTING(tilt);
+    DRAW_SETTING(board_vcc);
     
 #ifdef HAVE_AP_BLHELI_SUPPORT
     DRAW_SETTING(blh_temp);
