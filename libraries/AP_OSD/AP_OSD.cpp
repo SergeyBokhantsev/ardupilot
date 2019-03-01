@@ -271,22 +271,6 @@ void AP_OSD::stats()
 //Thanks to minimosd authors for the multiple osd screen idea
 void AP_OSD::update_current_screen()
 {
-    if (AP_Notify::flags.armed){
-        ever_armed = true;
-    }
-    else {
-        // check if we must show the "before arm" screen
-        if (!ever_armed && before_arm_screen > 0 && before_arm_screen < AP_OSD_NUM_SCREENS && screen[before_arm_screen-1].enabled) {
-            current_screen = before_arm_screen-1;
-            return;
-        }
-        // check if we must show the "after disarm" screen
-        else if (ever_armed && disarm_screen > 0 && disarm_screen < AP_OSD_NUM_SCREENS && screen[disarm_screen-1].enabled) {
-            current_screen = disarm_screen-1;
-            return;
-        }
-    }
-
     if (rc_channel == 0) {
         return;
     }
