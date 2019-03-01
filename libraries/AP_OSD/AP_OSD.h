@@ -298,6 +298,7 @@ public:
         TOGGLE=0,
         PWM_RANGE=1,
         AUTO_SWITCH=2,
+        ARM_STATE=3,
     };
 
     AP_Int8 osd_type;
@@ -365,8 +366,6 @@ private:
     uint32_t last_switch_ms;
     struct NavInfo nav_info;
     bool ever_armed;
-    AP_Int8 disarm_screen;
-    AP_Int8 before_arm_screen;
     
     uint32_t last_update_ms;
     float last_distance_m;

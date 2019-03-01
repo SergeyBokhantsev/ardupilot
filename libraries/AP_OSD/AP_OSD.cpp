@@ -68,6 +68,7 @@ const AP_Param::GroupInfo AP_OSD::var_info[] = {
     // @Values: 0: switch to next screen if channel value was changed,
     //          1: select screen based on pwm ranges specified for each screen,
     //          2: switch to next screen after low to high transition and every 1s while channel value is high
+    //          3: use screen#1 when armed; use screen#2 before arm, use screen#3 (or #2, if #3 is disabled) after disarm
     // @User: Standard
     AP_GROUPINFO("_SW_METHOD", 7, AP_OSD, sw_method, AP_OSD::TOGGLE),
 
@@ -148,15 +149,7 @@ const AP_Param::GroupInfo AP_OSD::var_info[] = {
     // @Description: Battery capacity Watt-hours
     // @Range: 0 100
     // @User: Standard
-    AP_GROUPINFO("_BAT_WH", 18, AP_OSD, bat_wh, 0),    
-    
-    // @Param: Screen number to show on disarm
-    // @DisplayName: 
-    // @Description: 
-    // @Range: 0 100
-    // @User: Standard
-    AP_GROUPINFO("_DARM_SCR", 19, AP_OSD, disarm_screen, 0),    
-    AP_GROUPINFO("_BARM_SCR", 20, AP_OSD, before_arm_screen, 0),    
+    AP_GROUPINFO("_BAT_WH", 18, AP_OSD, bat_wh, 0),       
     
     AP_GROUPEND
 };
@@ -346,6 +339,30 @@ void AP_OSD::update_current_screen()
             }
         } else {
             last_switch_ms = 0;
+        }
+        break;
+    //screen selection depending on arm state
+    case ARM_STATE:
+        if (AP_Notify::flags.armed){
+            ever_armed = true;
+            // Armed: try to select screen#1
+            if (AP_OSD_NUM_SCREENS > 0 && screen[0].enabled) {
+                current_screen = 0;
+            }
+        }
+        else {
+            // If never armed: try to select screen#2
+            if (!ever_armed && AP_OSD_NUM_SCREENS > 1 && screen[1].enabled) {
+                current_screen = 1;
+            }
+            // If was armed before: try to select screen#3
+            else if (ever_armed && AP_OSD_NUM_SCREENS > 2 && screen[2].enabled) {
+                current_screen = 2;
+            }
+            // If was armed before but no Screen#3: try to select screen#2
+            else if (ever_armed && AP_OSD_NUM_SCREENS > 1 && screen[1].enabled) {
+                current_screen = 1;
+            }
         }
         break;
     }
