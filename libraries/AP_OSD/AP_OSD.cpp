@@ -150,6 +150,14 @@ const AP_Param::GroupInfo AP_OSD::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("_BAT_WH", 18, AP_OSD, bat_wh, 0),    
     
+    // @Param: Screen number to show on disarm
+    // @DisplayName: 
+    // @Description: 
+    // @Range: 0 100
+    // @User: Standard
+    AP_GROUPINFO("_DARM_SCR", 19, AP_OSD, disarm_screen, 0),    
+    AP_GROUPINFO("_BARM_SCR", 20, AP_OSD, before_arm_screen, 0),    
+    
     AP_GROUPEND
 };
 
@@ -270,6 +278,22 @@ void AP_OSD::stats()
 //Thanks to minimosd authors for the multiple osd screen idea
 void AP_OSD::update_current_screen()
 {
+    if (AP_Notify::flags.armed){
+        ever_armed = true;
+    }
+    else {
+        // check if we must show the "before arm" screen
+        if (!ever_armed && before_arm_screen > 0 && before_arm_screen < AP_OSD_NUM_SCREENS && screen[before_arm_screen-1].enabled) {
+            current_screen = before_arm_screen-1;
+            return;
+        }
+        // check if we must show the "after disarm" screen
+        else if (ever_armed && disarm_screen > 0 && disarm_screen < AP_OSD_NUM_SCREENS && screen[disarm_screen-1].enabled) {
+            current_screen = disarm_screen-1;
+            return;
+        }
+    }
+
     if (rc_channel == 0) {
         return;
     }
