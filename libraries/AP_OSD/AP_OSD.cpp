@@ -271,6 +271,34 @@ void AP_OSD::stats()
 //Thanks to minimosd authors for the multiple osd screen idea
 void AP_OSD::update_current_screen()
 {
+    // Options that aren't dependent on RC
+    switch(sw_method) {
+    //screen selection depending on arm state
+    case ARM_STATE:
+        if (AP_Notify::flags.armed){
+            ever_armed = true;
+            // Armed: try to select screen#1
+            if (AP_OSD_NUM_SCREENS > 0 && screen[0].enabled) {
+                current_screen = 0;
+            }
+        }
+        else {
+            // If never armed: try to select screen#2
+            if (!ever_armed && AP_OSD_NUM_SCREENS > 1 && screen[1].enabled) {
+                current_screen = 1;
+            }
+            // If was armed before: try to select screen#3
+            else if (ever_armed && AP_OSD_NUM_SCREENS > 2 && screen[2].enabled) {
+                current_screen = 2;
+            }
+            // If was armed before but no Screen#3: try to select screen#2
+            else if (ever_armed && AP_OSD_NUM_SCREENS > 1 && screen[1].enabled) {
+                current_screen = 1;
+            }
+        }
+        return;
+    }
+    
     if (rc_channel == 0) {
         return;
     }
@@ -324,31 +352,7 @@ void AP_OSD::update_current_screen()
         } else {
             last_switch_ms = 0;
         }
-        break;
-    //screen selection depending on arm state
-    case ARM_STATE:
-        if (AP_Notify::flags.armed){
-            ever_armed = true;
-            // Armed: try to select screen#1
-            if (AP_OSD_NUM_SCREENS > 0 && screen[0].enabled) {
-                current_screen = 0;
-            }
-        }
-        else {
-            // If never armed: try to select screen#2
-            if (!ever_armed && AP_OSD_NUM_SCREENS > 1 && screen[1].enabled) {
-                current_screen = 1;
-            }
-            // If was armed before: try to select screen#3
-            else if (ever_armed && AP_OSD_NUM_SCREENS > 2 && screen[2].enabled) {
-                current_screen = 2;
-            }
-            // If was armed before but no Screen#3: try to select screen#2
-            else if (ever_armed && AP_OSD_NUM_SCREENS > 1 && screen[1].enabled) {
-                current_screen = 1;
-            }
-        }
-        break;
+        break;    
     }
     switch_debouncer = false;
 }
