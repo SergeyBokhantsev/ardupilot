@@ -491,7 +491,10 @@ void AP_OSD_Screen::draw_wh_consumed(uint8_t x, uint8_t y)
 void AP_OSD_Screen::draw_board_vcc(uint8_t x, uint8_t y)
 {
     float vcc = hal.analogin->board_voltage();
-    backend->write(x, y, vcc < 4.5f || vcc > 5.3f, "%1.1f%c", vcc, SYM_VOLT);
+    
+    if (vcc < 4.9f || vcc > 5.1f) {
+        backend->write(x, y, false, "%1.1f%c", vcc, SYM_VOLT);
+    }
 }
 
 void AP_OSD_Screen::draw_tilt(uint8_t x, uint8_t y)
