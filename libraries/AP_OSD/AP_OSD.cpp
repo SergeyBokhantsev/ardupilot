@@ -135,20 +135,41 @@ const AP_Param::GroupInfo AP_OSD::var_info[] = {
     // @Range: 1 20
     // @User: Standard
     AP_GROUPINFO("_MSG_TIME", 16, AP_OSD, msgtime_s, 10),
+    
+    // @Param: _ARM_SCR
+    // @DisplayName: Arm screen
+    // @Description: Screen to be shown on Arm event. Zero to disable the feature.
+    // @Range: 0 4
+    // @User: Standard
+    AP_GROUPINFO("_ARM_SCR", 17, AP_OSD, arm_scr, 0),
+    
+    // @Param: _DSARM_SCR
+    // @DisplayName: Disarm screen
+    // @Description: Screen to be shown on disarm event. Zero to disable the feature.
+    // @Range: 0 4
+    // @User: Standard
+    AP_GROUPINFO("_DSARM_SCR", 18, AP_OSD, disarm_scr, 0),
+
+    // @Param: _FS_SCR
+    // @DisplayName: Failsafe screen
+    // @Description: Screen to be shown on failsafe event. Zero to disable the feature.
+    // @Range: 0 4
+    // @User: Standard
+    AP_GROUPINFO("_FS_SCR", 19, AP_OSD, failsafe_scr, 0),
 
     // @Param: _W_AMPS
     // @DisplayName: 
     // @Description: 
     // @Range: 0 100
     // @User: Standard
-    AP_GROUPINFO("_W_AMPS", 17, AP_OSD, warn_amps, 15),
+    AP_GROUPINFO("_W_AMPS", 20, AP_OSD, warn_amps, 15),
 
     // @Param: _BAT_WH
     // @DisplayName: 
     // @Description: Battery capacity Watt-hours
     // @Range: 0 100
     // @User: Standard
-    AP_GROUPINFO("_BAT_WH", 18, AP_OSD, bat_wh, 0),    
+    AP_GROUPINFO("_BAT_WH", 21, AP_OSD, bat_wh, 0),    
     
     AP_GROUPEND
 };
@@ -163,6 +184,7 @@ AP_OSD::AP_OSD()
 #ifdef WITH_SITL_OSD
     osd_type.set_default(2);
 #endif
+    previous_pwm_screen = -1;
 }
 
 void AP_OSD::init()
@@ -270,6 +292,33 @@ void AP_OSD::stats()
 //Thanks to minimosd authors for the multiple osd screen idea
 void AP_OSD::update_current_screen()
 {
+    // Switch on ARM/DISARM event
+    if (AP_Notify::flags.armed){
+        if (!was_armed && arm_scr > 0 && arm_scr <= AP_OSD_NUM_SCREENS && screen[arm_scr-1].enabled){
+            current_screen = arm_scr-1;
+        }
+        was_armed = true;
+    } else if (was_armed) {
+        if (disarm_scr > 0 && disarm_scr <= AP_OSD_NUM_SCREENS && screen[disarm_scr-1].enabled){
+            current_screen = disarm_scr-1;
+        } 
+        was_armed = false;
+    }
+    
+    // Switch on failsafe event
+    if (AP_Notify::flags.failsafe_radio || AP_Notify::flags.failsafe_battery) {
+        if (!was_failsafe && failsafe_scr > 0 && failsafe_scr <= AP_OSD_NUM_SCREENS && screen[failsafe_scr-1].enabled){
+            pre_fs_screen = current_screen;
+            current_screen = failsafe_scr-1;
+        }
+        was_failsafe = true;
+    } else if (was_failsafe) {
+        if (screen[pre_fs_screen].enabled){
+            current_screen = pre_fs_screen;
+        } 
+        was_failsafe = false;
+    }
+    
     if (rc_channel == 0) {
         return;
     }
@@ -301,8 +350,8 @@ void AP_OSD::update_current_screen()
     //select screen based on pwm ranges specified
     case PWM_RANGE:
         for (int i=0; i<AP_OSD_NUM_SCREENS; i++) {
-            if (screen[i].enabled && screen[i].channel_min <= channel_value && screen[i].channel_max > channel_value) {
-                current_screen = i;
+            if (screen[i].enabled && screen[i].channel_min <= channel_value && screen[i].channel_max > channel_value && previous_pwm_screen != i) {
+                current_screen = previous_pwm_screen = i;
                 break;
             }
         }
