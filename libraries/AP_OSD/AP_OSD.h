@@ -140,22 +140,44 @@ private:
             void set(uint16_t value){
                 array[loc] = value;
                 
-                if (++loc == 50)
+                if (++loc == 15)
                     loc = 0;                
             }
             
             uint16_t get(){                
                 float result = 0;
-                for(int i=0; i<50; ++i){
+                for(int i=0; i<15; ++i){
                     result += array[i];
                 }
-                return (uint16_t)(result / 50);
+                return (uint16_t)(result / 15);
             }
         
         private:
-            uint16_t array[50];
+            uint16_t array[15];
             uint8_t loc;
     } avrg_fly_time, avrg_fly_fwrd_time, avrg_fly_fwrd_dist;
+    
+    struct {
+        bool shall_recalculate() 
+        {
+            if (++counter >= 3) { // process every 3-rd call (~ 3Hz)
+                time_estimation = forward_estimation = keep_home_crs = blink = false;
+                gap = 0;
+                counter = 0;
+                return true;
+            }            
+            return false;
+        }
+        
+        bool time_estimation;
+        bool forward_estimation;
+        bool blink;
+        bool keep_home_crs;
+        uint16_t gap;
+        
+        private:
+        int8_t counter;
+    } estimator_ctx;
     
     AP_OSD_Setting altitude{true, 23, 8};
     AP_OSD_Setting bat_volt{true, 24, 1};
