@@ -63,6 +63,7 @@ public:
         RangeFinder_TYPE_BenewakeTF02 = 19,
         RangeFinder_TYPE_BenewakeTFmini = 20,
         RangeFinder_TYPE_PLI2CV3HP = 21,
+        RangeFinder_TYPE_BenewakeTFmini_I2C = 22,
     };
 
     enum RangeFinder_Function {
@@ -84,6 +85,9 @@ public:
         uint16_t               distance_cm; // distance: in cm
         uint16_t               voltage_mv;  // voltage in millivolts,
                                             // if applicable, otherwise 0
+        uint8_t               strength;     // signal reception level
+        uint8_t               mode;         // device internal mode
+        int                   i2c_result;
         enum RangeFinder_Status status;     // sensor status
         uint8_t                range_valid_count;   // number of consecutive valid readings (maxes out at 10)
         bool                   pre_arm_check;   // true if sensor has passed pre-arm checks

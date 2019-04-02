@@ -721,12 +721,11 @@ struct PACKED log_Mode {
 struct PACKED log_RFND {
     LOG_PACKET_HEADER;
     uint64_t time_us;
-    uint16_t dist1;
-    uint8_t status1;
-    uint8_t orient1;
-    uint16_t dist2;
-    uint8_t status2;
-    uint8_t orient2;
+    uint16_t dist;
+    uint8_t status;
+    uint8_t orient;
+    uint8_t str;
+    uint8_t mode;
 };
 
 /*
@@ -1247,7 +1246,7 @@ Format characters in the format string for binary log messages
     { LOG_MODE_MSG, sizeof(log_Mode), \
       "MODE", "QMBB",         "TimeUS,Mode,ModeNum,Rsn", "s---", "F---" }, \
     { LOG_RFND_MSG, sizeof(log_RFND), \
-      "RFND", "QCBBCBB", "TimeUS,Dist1,Stat1,Orient1,Dist2,Stat2,Orient2", "sm--m--", "FB--B--" }, \
+      "RFND", "QCBBBB", "TimeUS,Dist,Stat,Orient,Str,Mode", "sm----", "FB----" }, \
     { LOG_DF_MAV_STATS, sizeof(log_DF_MAV_Stats), \
       "DMS", "IIIIIBBBBBBBBBB",         "TimeMS,N,Dp,RT,RS,Er,Fa,Fmn,Fmx,Pa,Pmn,Pmx,Sa,Smn,Smx", "s--------------", "C--------------" }, \
     { LOG_BEACON_MSG, sizeof(log_Beacon), \

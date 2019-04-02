@@ -180,6 +180,7 @@ private:
     AP_OSD_Setting estimation{true, 5, 5};
     AP_OSD_Setting tilt{true, 5, 5};
     AP_OSD_Setting board_vcc{true, 5, 5};
+    AP_OSD_Setting rangefinder_0{true, 5, 5};
 
 #ifdef HAVE_AP_BLHELI_SUPPORT
     AP_OSD_Setting blh_temp {false, 24, 13};
@@ -243,10 +244,12 @@ private:
     void draw_estimation(uint8_t x, uint8_t y);
     void draw_tilt(uint8_t x, uint8_t y);
     void draw_board_vcc(uint8_t x, uint8_t y);
+    void draw_rangefinder_0(uint8_t x, uint8_t y);
     
     //helper functions
     void draw_speed_vector(uint8_t x, uint8_t y, Vector2f v, int32_t yaw);
     void draw_distance(uint8_t x, uint8_t y, float distance);
+    void draw_vertical_slider(uint8_t x, uint8_t y, bool blink, uint8_t height, float value_percent);
 
 #ifdef HAVE_AP_BLHELI_SUPPORT
     void draw_blh_temp(uint8_t x, uint8_t y);

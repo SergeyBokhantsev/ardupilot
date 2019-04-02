@@ -38,6 +38,9 @@ public:
     enum Rotation orientation() const { return (Rotation)state.orientation.get(); }
     uint16_t distance_cm() const { return state.distance_cm; }
     uint16_t voltage_mv() const { return state.voltage_mv; }
+    uint8_t strength() const { return state.strength; }
+    uint8_t mode() const { return state.mode; }
+    int i2c_result() const { return state.i2c_result; }
     int16_t max_distance_cm() const { return state.max_distance_cm; }
     int16_t min_distance_cm() const { return state.min_distance_cm; }
     int16_t ground_clearance_cm() const { return state.ground_clearance_cm; }

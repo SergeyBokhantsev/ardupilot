@@ -30,6 +30,8 @@
 #include <AP_Notify/AP_Notify.h>
 #include <AP_Stats/AP_Stats.h>
 #include <AP_Baro/AP_Baro.h>
+#include <AP_RangeFinder/RangeFinder.h>
+#include <AP_RangeFinder/RangeFinder_Backend.h>
 
 #include <ctype.h>
 #include <GCS_MAVLink/GCS.h>
@@ -219,6 +221,7 @@ const AP_Param::GroupInfo AP_OSD_Screen::var_info[] = {
     AP_SUBGROUPINFO(estimation, "ESTIMAT", 44, AP_OSD_Screen, AP_OSD_Setting),
     AP_SUBGROUPINFO(tilt, "TILT", 45, AP_OSD_Screen, AP_OSD_Setting),
     AP_SUBGROUPINFO(board_vcc, "BRD_VCC", 46, AP_OSD_Screen, AP_OSD_Setting),
+    AP_SUBGROUPINFO(rangefinder_0, "RNGF_0", 47, AP_OSD_Screen, AP_OSD_Setting),
     
     AP_GROUPEND
 };
@@ -316,6 +319,9 @@ AP_OSD_Screen::AP_OSD_Screen()
 #define SYM_FLY       0x9C
 #define SYM_EFF       0xF2
 #define SYM_AH        0xF3
+
+#define SYM_SLIDER_EMPTY   0x7F
+#define SYM_SLIDER_MIN     0x8A
 
 void AP_OSD_Screen::set_backend(AP_OSD_Backend *_backend)
 {
@@ -581,6 +587,62 @@ void AP_OSD_Screen::draw_estimation(uint8_t x, uint8_t y)
         backend->write(x, y, false, "%3d", avrg_fly_time.get());
     }
      
+}
+
+void AP_OSD_Screen::draw_rangefinder_0(uint8_t x, uint8_t y)
+{
+    RangeFinder* rf = RangeFinder::get_singleton();
+    if (rf == nullptr) 
+    {
+        //backend->write(x, y, true, "1");
+        return;
+    }
+    
+    AP_RangeFinder_Backend* rfb = rf->get_backend(0);    
+    if (rfb == nullptr) 
+    {
+        //backend->write(x, y, true, "2");
+        return;
+    }
+    
+    //RangeFinder::RangeFinder_Status
+    
+    if (rfb->status() != RangeFinder::RangeFinder_Good) 
+    {
+        backend->write(x, y, true, "%2d-%3d", (int)rfb->status(), rfb->i2c_result());
+        return;
+    }
+    
+    uint16_t distance_cm = rfb->distance_cm();
+    uint16_t max_distance_cm = rfb->max_distance_cm();
+    uint16_t min_distance_cm = rfb->min_distance_cm();
+    
+    uint16_t range = max_distance_cm - min_distance_cm;    
+    if (range <= 0) return;
+    
+    float slider_percent = (float)(distance_cm - min_distance_cm) / (float)range;
+    bool blink = slider_percent > 1.0f;
+    
+    draw_vertical_slider(x, y, blink, 6, slider_percent);
+}
+
+void AP_OSD_Screen::draw_vertical_slider(uint8_t x, uint8_t y, bool blink, uint8_t height, float value_percent)
+{
+    if (height < 1) return;
+    
+    value_percent = constrain_float(value_percent, 0.0f, 0.99f);
+    
+    for(uint8_t i = 0; i < height; ++i) {
+        backend->write(x, y + i, false, "%c", SYM_SLIDER_EMPTY);
+    }
+    
+    uint8_t mark_y = height - (uint8_t)(height * value_percent) - 1;
+    float percent_per_char = 1.0f / height;    
+    float mark_char_value = value_percent - ((uint8_t)(height * value_percent) * percent_per_char);
+    percent_per_char = percent_per_char / 6;
+    char mark = SYM_SLIDER_MIN + char(mark_char_value / percent_per_char);
+    
+    backend->write(x, y + mark_y, blink, "%c", mark);
 }
 
 void AP_OSD_Screen::draw_fltmode(uint8_t x, uint8_t y)
@@ -1184,6 +1246,7 @@ void AP_OSD_Screen::draw(void)
     DRAW_SETTING(estimation);
     DRAW_SETTING(tilt);
     DRAW_SETTING(board_vcc);
+    DRAW_SETTING(rangefinder_0);
     
 #ifdef HAVE_AP_BLHELI_SUPPORT
     DRAW_SETTING(blh_temp);
