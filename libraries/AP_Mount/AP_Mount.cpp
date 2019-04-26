@@ -198,6 +198,8 @@ const AP_Param::GroupInfo AP_Mount::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("_TYPE", 19, AP_Mount, state[0]._type, 0),
 
+    AP_GROUPINFO("_GEAR_RATI", 20, AP_Mount, state[0]._gear_ratio, 100),
+    
     // 20 formerly _OFF_JNT
 
     // 21 formerly _OFF_ACC
