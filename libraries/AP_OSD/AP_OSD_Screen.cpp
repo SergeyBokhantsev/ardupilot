@@ -582,10 +582,10 @@ void AP_OSD_Screen::draw_estimation(uint8_t x, uint8_t y)
         backend->write(x, y, true, "%3d%c KHC", avrg_fly_time.get(), 0xCD);
     }
     else if (estimator_ctx.gap > 0){
-        backend->write(x, y, true, "%3d%c GAP %4d", avrg_fly_time.get(), 0xCD, estimator_ctx.gap);
+        backend->write(x, y, true, "%3d%c GAP %4d%c", avrg_fly_time.get(), 0xCD, estimator_ctx.gap, SYM_M);
     }
     else if (estimator_ctx.forward_estimation){
-        backend->write(x, y, estimator_ctx.blink, "%3d%c%4d%c%4d", avrg_fly_time.get(), 0xCD, avrg_fly_fwrd_time.get(), 0xCD, avrg_fly_fwrd_dist.get() * 50);
+        backend->write(x, y, estimator_ctx.blink, "%3d%c%4d%c%2.1f%c", avrg_fly_time.get(), 0xCD, avrg_fly_fwrd_time.get(), 0xCD, (float)(avrg_fly_fwrd_dist.get() * 50) / 1000.0f, SYM_KM);
     }
     else if (estimator_ctx.time_estimation) {
         backend->write(x, y, false, "%3d", avrg_fly_time.get());

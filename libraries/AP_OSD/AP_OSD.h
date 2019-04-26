@@ -135,25 +135,26 @@ private:
             uint8_t remain_ticks;
     } flt_mode_ctx;
     
+#define AVRG_FLY_ARRAY 25
     struct {
         public:
             void set(uint16_t value){
                 array[loc] = value;
                 
-                if (++loc == 15)
+                if (++loc == AVRG_FLY_ARRAY)
                     loc = 0;                
             }
             
             uint16_t get(){                
                 float result = 0;
-                for(int i=0; i<15; ++i){
+                for(int i=0; i<AVRG_FLY_ARRAY; ++i){
                     result += array[i];
                 }
-                return (uint16_t)(result / 15);
+                return (uint16_t)(result / AVRG_FLY_ARRAY);
             }
         
         private:
-            uint16_t array[15];
+            uint16_t array[AVRG_FLY_ARRAY];
             uint8_t loc;
     } avrg_fly_time, avrg_fly_fwrd_time, avrg_fly_fwrd_dist;
     
