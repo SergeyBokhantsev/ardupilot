@@ -51,8 +51,8 @@ AP_SmartAudio::AP_SmartAudio() :
 _uart_exists(false),
 _port_mode(SMARTAUDIO_PORT_MODE_NONE),
 _power_zone(-1),
-_hi_power_mode(false),
-_current_mode(-1)
+_power_mode(SMARTAUDIO_POWER_MODE_LO),
+_current_vtx_mode(-1)
 {
     AP_Param::setup_object_defaults(this, var_info);
 }
@@ -99,17 +99,17 @@ bool AP_SmartAudio::activate_port(uint8_t mode)
     return false;
 }
 
-void AP_SmartAudio::hi_power_mode(bool enabled)
+void AP_SmartAudio::set_power_mode(uint8_t mode)
 {
-    _hi_power_mode = enabled;
+    _power_mode = mode;
 
-    if (_hi_power_mode)
-    {
-        set_power(_power_hi);
-    }
-    else if (is_auto_power_enabled())
+    if (is_auto_power_enabled())
     {
         set_power(_power_zone);
+    }
+    else if (_power_mode == SMARTAUDIO_POWER_MODE_HI)
+    {
+        set_power(_power_hi);
     }
     else
     {
@@ -119,17 +119,17 @@ void AP_SmartAudio::hi_power_mode(bool enabled)
 
 void AP_SmartAudio::set_power(int8_t value)
 {
-    DataFlash_Class::instance()->Log_Write_SMAUD_VTX((uint8_t)value, _power_zone, _hi_power_mode ? 1 : 0);
+    DataFlash_Class::instance()->Log_Write_SMAUD_VTX((uint8_t)value, _power_zone, _power_mode);
     
     switch(value)
     {
-        case 0:	send_v2_command(command_power_0, 4); _gcs->send_text(MAV_SEVERITY_INFO, "PWR0"); break;                        
-        case 1:	send_v2_command(command_power_1, 4); _gcs->send_text(MAV_SEVERITY_INFO, "PWR1"); break;
-        case 2:	send_v2_command(command_power_2, 4); _gcs->send_text(MAV_SEVERITY_INFO, "PWR2"); break;
-        case 3:	send_v2_command(command_power_3, 4); _gcs->send_text(MAV_SEVERITY_INFO, "PWR3"); break;
+        case 0:	send_v2_command(command_power_0, 4); _gcs->send_text(MAV_SEVERITY_INFO, "VTX0"); break;                        
+        case 1:	send_v2_command(command_power_1, 4); _gcs->send_text(MAV_SEVERITY_INFO, "VTX1"); break;
+        case 2:	send_v2_command(command_power_2, 4); _gcs->send_text(MAV_SEVERITY_INFO, "VTX2"); break;
+        case 3:	send_v2_command(command_power_3, 4); _gcs->send_text(MAV_SEVERITY_INFO, "VTX3"); break;
     }
     
-    _current_mode = value;
+    _current_vtx_mode = value;
 }
 
 void AP_SmartAudio::toggle_recording()
@@ -149,7 +149,7 @@ void AP_SmartAudio::check_home_distance(float meters)
     else
         _power_zone = 3;
     
-    if (is_auto_power_enabled() && _current_mode != _power_zone)
+    if (is_auto_power_enabled() && _current_vtx_mode != _power_zone)
         set_power(_power_zone);        
 }
 

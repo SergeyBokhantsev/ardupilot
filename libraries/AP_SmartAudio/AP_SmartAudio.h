@@ -30,6 +30,11 @@
 
 #define SMARTAUDIO_AUTOPOWER_HISTERESIS 5
 
+// Power mode numbers matches Copter/switches.cpp
+#define SMARTAUDIO_POWER_MODE_HI 2
+#define SMARTAUDIO_POWER_MODE_AUTO 1
+#define SMARTAUDIO_POWER_MODE_LO 0
+
 class AP_SmartAudio {
 public:
     AP_SmartAudio();
@@ -39,7 +44,7 @@ public:
     
     // update flight control mode. The control mode is vehicle type specific
     void set_power(int8_t value);
-    void hi_power_mode(bool enabled);
+    void set_power_mode(uint8_t mode);
     void toggle_recording();
     void check_home_distance(const float meters);
     
@@ -52,10 +57,10 @@ private:
     
     bool _uart_exists;
     uint8_t _port_mode;
-    int8_t _current_mode;
+    int8_t _current_vtx_mode;
     int8_t _power_zone;
     
-    bool _hi_power_mode;    
+    uint8_t _power_mode;    
 
     AP_Int8 _power_lo;
     AP_Int8 _power_hi;
@@ -73,7 +78,7 @@ private:
     uint8_t command_toggle_rec[3] SMARTAUDIO_RC_SPLIT_COMMAND_TOGGLE_REC;
     uint8_t command_toggle_mode[3] SMARTAUDIO_RC_SPLIT_COMMAND_TOGGLE_MODE;
 
-    bool is_auto_power_enabled() { return !_hi_power_mode && _auto_power_zone0 > 0 && _auto_power_zone1 > 0 && _auto_power_zone2 > 0; }
+    bool is_auto_power_enabled() { return _power_mode == SMARTAUDIO_POWER_MODE_AUTO && _auto_power_zone0 > 0 && _auto_power_zone1 > 0 && _auto_power_zone2 > 0; }
 
     bool activate_port(uint8_t mode);
     void send_v2_command(uint8_t* data, uint8_t len);

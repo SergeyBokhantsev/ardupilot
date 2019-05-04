@@ -1777,14 +1777,14 @@ void DataFlash_Class::Log_Write_SRTL(bool active, uint16_t num_points, uint16_t 
     WriteBlock(&pkt_srtl, sizeof(pkt_srtl));
 }
 
-void DataFlash_Class::Log_Write_SMAUD_VTX(uint8_t power, int8_t zone, uint8_t hi_power_mode)
+void DataFlash_Class::Log_Write_SMAUD_VTX(uint8_t power, int8_t zone, uint8_t mode)
 {    
     struct log_SMAUD_VTX_PWR pkt = {
         LOG_PACKET_HEADER_INIT(LOG_SMAUD_VTX_PWR_MSG),
         time_us         : AP_HAL::micros64(),
         power           : power,
         zone            : zone,
-        hi_power_mode   : hi_power_mode
+        mode            : mode
     };
     
     WriteBlock(&pkt, sizeof(pkt));

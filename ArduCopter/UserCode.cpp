@@ -61,16 +61,7 @@ void Copter::userhook_auxSwitch1(uint8_t ch_flag)
 {
     // VTX FORCE POWER (CHx_OPT = 47)
 #if SMARTAUDIO_ENABLED == ENABLED
-    switch (ch_flag){
-        case AUX_SWITCH_HIGH: {
-            g2.smart_audio.hi_power_mode(true);
-            break;
-        }
-        case AUX_SWITCH_LOW: {
-            g2.smart_audio.hi_power_mode(false);
-            break;
-        }
-    }
+    g2.smart_audio.set_power_mode(ch_flag);    
 #endif
 }
 

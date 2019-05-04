@@ -1051,7 +1051,7 @@ struct PACKED log_SMAUD_VTX_PWR {
     uint64_t time_us;
     uint8_t power;
     int8_t zone;
-    uint8_t hi_power_mode;
+    uint8_t mode;
 };
 
 struct PACKED log_DSTL {
@@ -1259,7 +1259,7 @@ Format characters in the format string for binary log messages
     { LOG_SRTL_MSG, sizeof(log_SRTL), \
       "SRTL", "QBHHBfff", "TimeUS,Active,NumPts,MaxPts,Action,N,E,D", "s----mmm", "F----000" } , \
     { LOG_SMAUD_VTX_PWR_MSG, sizeof(log_SMAUD_VTX_PWR), \
-      "VTX", "QBbB", "TimeUS,Power,Zone,HiPwr", "s---", "F000" }
+      "VTX", "QBbB", "TimeUS,Power,Zone,Mode", "s---", "F000" }
 
 // messages for more advanced boards
 #define LOG_EXTRA_STRUCTURES \
