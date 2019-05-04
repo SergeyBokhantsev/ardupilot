@@ -39,43 +39,45 @@ void Copter::userhook_SlowLoop()
 #ifdef USERHOOK_SUPERSLOWLOOP
 void Copter::userhook_SuperSlowLoop()
 {
-    if (ahrs.get_likely_flying())
+    if (smaud_update_delay_sec == 0)
     {
-        Location loc;
-        if (ahrs.get_position(loc))
+        if (ahrs.get_likely_flying())
         {
-            const Location &home_loc = ahrs.get_home();
-            if (home_loc.lat != 0 || home_loc.lng != 0)
+            Location loc;
+            if (ahrs.get_position(loc))
             {
-                g2.smart_audio.check_home_distance(get_distance(home_loc, loc));
+                const Location &home_loc = ahrs.get_home();
+                if (home_loc.lat != 0 || home_loc.lng != 0)
+                {
+                    g2.smart_audio.update(get_distance(home_loc, loc));
+                }
             }
         }
+        else
+            g2.smart_audio.update(0);
     }
     else
-        g2.smart_audio.check_home_distance(0);
+        smaud_update_delay_sec--;
 }
 #endif
 
 #ifdef USERHOOK_AUXSWITCH
+
+// (CHx_OPT = 47)
 void Copter::userhook_auxSwitch1(uint8_t ch_flag)
 {
-    // VTX FORCE POWER (CHx_OPT = 47)
-#if SMARTAUDIO_ENABLED == ENABLED
-    g2.smart_audio.set_power_mode(ch_flag);    
-#endif
+    g2.user_parameters.doSwitch(1, uint8_t ch_flag, g2.smart_audio);
 }
 
+// (CHx_OPT = 48)
 void Copter::userhook_auxSwitch2(uint8_t ch_flag)
 {
-    // RunCam Split RECORD TOGGLE (CHx_OPT = 48)
-#if SMARTAUDIO_ENABLED == ENABLED
-    if (ch_flag == AUX_SWITCH_HIGH)
-        g2.smart_audio.toggle_recording();
-#endif
+    g2.user_parameters.doSwitch(2, uint8_t ch_flag, g2.smart_audio);
 }
 
+// (CHx_OPT = 49)
 void Copter::userhook_auxSwitch3(uint8_t ch_flag)
-{
-    // put your aux switch #3 handler here (CHx_OPT = 49)
+{    
+    g2.user_parameters.doSwitch(3, uint8_t ch_flag, g2.smart_audio);
 }
 #endif
