@@ -491,7 +491,10 @@ void AP_OSD_Screen::draw_wh_consumed(uint8_t x, uint8_t y)
 void AP_OSD_Screen::draw_board_vcc(uint8_t x, uint8_t y)
 {
     float vcc = hal.analogin->board_voltage();
-    backend->write(x, y, vcc < 4.5f || vcc > 5.3f, "%1.1f%c", vcc, SYM_VOLT);
+    
+    if (vcc < 4.9f || vcc > 5.1f) {
+        backend->write(x, y, false, "%1.1f%c", vcc, SYM_VOLT);
+    }
 }
 
 void AP_OSD_Screen::draw_tilt(uint8_t x, uint8_t y)
@@ -507,80 +510,86 @@ void AP_OSD_Screen::draw_tilt(uint8_t x, uint8_t y)
 
 void AP_OSD_Screen::draw_estimation(uint8_t x, uint8_t y)
 {    
-    bool forward_estimation = false;
-    bool blink = false;
-    uint16_t gap = 0;
-     
-    AP_BattMonitor &battery = AP_BattMonitor::battery();
-    float remain_wh = (float)(osd->bat_wh) - battery.consumed_wh();
-     
-    if (remain_wh > 0.0f){
-        float power = battery.current_amps() * battery.voltage();
+    if (estimator_ctx.shall_recalculate()) 
+    {        
+        AP_BattMonitor &battery = AP_BattMonitor::battery();
+        float remain_wh = (float)(osd->bat_wh) - battery.consumed_wh();
          
-        if (power > 30.0f){
-            float fly_time = remain_wh / power * 3600.0f;
-            avrg_fly_time.set((uint16_t)(fly_time / 60.0f));
+        if (remain_wh > 0.0f){
+            float power = battery.current_amps() * battery.voltage();
              
-            AP_AHRS &ahrs = AP::ahrs();
-            Vector2f spdv = ahrs.groundspeed_vector();
-            float spd = spdv.length();
-            Location loc;
-             
-            if (spd > 1.0f && ahrs.get_position(loc) && ahrs.home_is_set()) {
-                const Location &home_loc = ahrs.get_home();
-                float home_dist = get_distance(home_loc, loc);
-                float remain_dist = fly_time * spd;
-                
-                forward_estimation = true;
-                float forward_dist = 0;
-                float forward_time = 0;
- 
-                if (remain_dist > home_dist){
+            if (power > 30.0f){
+                float fly_time = remain_wh / power * 3600.0f;
+                avrg_fly_time.set((uint16_t)(fly_time / 60.0f));
+                estimator_ctx.time_estimation = true;
+                 
+                AP_AHRS &ahrs = AP::ahrs();
+                Vector2f spdv = ahrs.groundspeed_vector();
+                float spd = spdv.length();
+                Location loc;
+                 
+                if (spd > 1.0f && ahrs.get_position(loc) && ahrs.home_is_set()) {
+                    const Location &home_loc = ahrs.get_home();
+                    float home_dist = get_distance(home_loc, loc);
+                    float remain_dist = fly_time * spd;
                     
-                    float spd_bearing = wrap_360_cd(DEGX100 * atan2f(spdv.y, spdv.x));
-                    float home_bearing = get_bearing_cd(loc, home_loc);
-                    float home_angle = abs(home_bearing - spd_bearing) / 100.0f;
-                  
-                    if (home_angle > 180.0f) {
-                        home_angle = 360.0f - home_angle;
+                    estimator_ctx.forward_estimation = true;
+                    float forward_dist = 0;
+                    float forward_time = 0;
+     
+                    if (remain_dist > home_dist){
+                        
+                        float spd_bearing = wrap_360_cd(DEGX100 * atan2f(spdv.y, spdv.x));
+                        float home_bearing = get_bearing_cd(loc, home_loc);
+                        float home_angle = abs(home_bearing - spd_bearing) / 100.0f;
+                      
+                        if (home_angle > 180.0f) {
+                            home_angle = 360.0f - home_angle;
+                        }
+     
+                        float denominator = 2 * home_dist * cosf(radians(home_angle)) - 2 * remain_dist;
+                         
+                        if (denominator != 0.0f) {
+                            forward_dist = (home_dist*home_dist - remain_dist*remain_dist) / denominator;
+                            forward_time = forward_dist / spd;
+                        }
+                        
+                        avrg_fly_fwrd_time.set((uint16_t)(forward_time / 60.0f));
+                        avrg_fly_fwrd_dist.set((uint16_t)(forward_dist / 50.0f));
+                        
+                        // blink when available travel distantion is less that 10% of the actual home distantion
+                        if (home_dist > 0.0f && forward_dist / home_dist < 0.1f){
+                            estimator_ctx.blink = true;                       
+                        } 
+                        // detect available forward_dist is close to remain_dist that mean we're heading home and remaining time is only for RTH
+                        else if (home_dist > 50.0f && forward_dist / remain_dist > 0.9f) {
+                            estimator_ctx.keep_home_crs = true;
+                        }
                     }
- 
-                    float denominator = 2 * home_dist * cosf(radians(home_angle)) - 2 * remain_dist;
-                     
-                    if (denominator != 0.0f) {
-                        forward_dist = (home_dist*home_dist - remain_dist*remain_dist) / denominator;
-                        forward_time = forward_dist / spd;
-                    }
-                    
-                    avrg_fly_fwrd_time.set((uint16_t)(forward_time / 60.0f));
-                    avrg_fly_fwrd_dist.set((uint16_t)(forward_dist / 50.0f));
-                    
-                    // blink when available travel distantion is less that 10% of the actual home distantion
-                    if (home_dist > 0.0f && forward_dist / home_dist < 0.1f){
-                        blink = true;
-                    }
+                    else {
+                        estimator_ctx.gap = (uint16_t)((home_dist - remain_dist) / 20.0f) * 20;
+                    }               
                 }
-                else {
-                    gap = (uint16_t)((home_dist - remain_dist) / 20.0f) * 20;
-                }               
-            }
-            else{
-                avrg_fly_fwrd_time.set(0);
-                avrg_fly_fwrd_dist.set(0);
+                else{
+                    avrg_fly_fwrd_time.set(0);
+                    avrg_fly_fwrd_dist.set(0);
+                }
             }
         }
     }    
-     
-    if (gap > 0){
-        backend->write(x, y, true, "%3d%c GAP %4d", avrg_fly_time.get(), 0xCD, gap);
+    
+    if (estimator_ctx.keep_home_crs){
+        backend->write(x, y, true, "%3d%c KHC", avrg_fly_time.get(), 0xCD);
     }
-    else if (forward_estimation){
-        backend->write(x, y, blink, "%3d%c%4d%c%4d", avrg_fly_time.get(), 0xCD, avrg_fly_fwrd_time.get(), 0xCD, avrg_fly_fwrd_dist.get() * 50);
+    else if (estimator_ctx.gap > 0){
+        backend->write(x, y, true, "%3d%c GAP %4d%c", avrg_fly_time.get(), 0xCD, estimator_ctx.gap, SYM_M);
     }
-    else {
+    else if (estimator_ctx.forward_estimation){
+        backend->write(x, y, estimator_ctx.blink, "%3d%c%4d%c%2.1f%c", avrg_fly_time.get(), 0xCD, avrg_fly_fwrd_time.get(), 0xCD, (float)(avrg_fly_fwrd_dist.get() * 50) / 1000.0f, SYM_KM);
+    }
+    else if (estimator_ctx.time_estimation) {
         backend->write(x, y, false, "%3d", avrg_fly_time.get());
-    }
-     
+    }     
 }
 
 void AP_OSD_Screen::draw_fltmode(uint8_t x, uint8_t y)
