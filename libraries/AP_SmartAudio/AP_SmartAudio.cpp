@@ -1,7 +1,5 @@
 #include "AP_SmartAudio.h"
-//#include <GCS_MAVLink/GCS.h>
-
-//extern const AP_HAL::HAL& hal;
+#include <AP_Notify/AP_Notify.h>
 
 const AP_Param::GroupInfo AP_SmartAudio::var_info[] = {
     // @Param: PWRHI
@@ -42,7 +40,9 @@ const AP_Param::GroupInfo AP_SmartAudio::var_info[] = {
     // @Units: meters
     // @Range: 0 10000
     // @User: Advanced
-    AP_GROUPINFO("APWRZ2", 4, AP_SmartAudio, _auto_power_zone2, 0),    
+    AP_GROUPINFO("APWRZ2", 4, AP_SmartAudio, _auto_power_zone2, 0), 
+
+    AP_GROUPINFO("CHAN", 5, AP_SmartAudio, _channel, 31),     
     
     AP_GROUPEND
 };
@@ -52,7 +52,8 @@ _uart_exists(false),
 _port_mode(SMARTAUDIO_PORT_MODE_NONE),
 _power_zone(-1),
 _power_mode(SMARTAUDIO_POWER_MODE_LO),
-_current_vtx_mode(-1)
+_current_vtx_pwr(-1),
+_current_vtx_ch(-1)
 {
     AP_Param::setup_object_defaults(this, var_info);
 }
@@ -99,37 +100,99 @@ bool AP_SmartAudio::activate_port(uint8_t mode)
     return false;
 }
 
-void AP_SmartAudio::set_power_mode(uint8_t mode)
+void AP_SmartAudio::send_text()
 {
-    _power_mode = mode;
-
-    if (is_auto_power_enabled())
-    {
-        set_power(_power_zone);
+    int mw = _current_vtx_pwr == 0 ? 25
+           : _current_vtx_pwr == 1 ? 200
+           : _current_vtx_pwr == 2 ? 600
+           : 1200;
+    
+    int chan = 0;
+    char band = 'U';
+    
+    // Band A
+    if (_current_vtx_ch < 8) {
+        chan = _current_vtx_ch + 1;
+        band = 'A';
+    } 
+    // Band B
+    else if (AP_Notify::flags.vtx_channel < 16) {
+        chan = _current_vtx_ch - 7;
+        band = 'B';
     }
-    else if (_power_mode == SMARTAUDIO_POWER_MODE_HI)
-    {
-        set_power(_power_hi);
+    // Band E
+    else if (AP_Notify::flags.vtx_channel < 24) {
+        chan = _current_vtx_ch - 15;
+        band = 'E';
     }
-    else
-    {
-        set_power(_power_lo);
+    // Band Airwave
+    else if (AP_Notify::flags.vtx_channel < 32) {
+        chan = _current_vtx_ch - 23;
+        band = 'F';
     }
+    // Band Race
+    else if (AP_Notify::flags.vtx_channel < 40) {
+        chan = _current_vtx_ch - 31;
+        band = 'R';
+    }   
+    
+    char mode = 'U';
+    
+    switch (_power_mode) {
+        case SMARTAUDIO_POWER_MODE_HI:
+            mode = 'H';
+            break;
+        case SMARTAUDIO_POWER_MODE_AUTO:
+            mode = 'A';
+            break;
+        case SMARTAUDIO_POWER_MODE_LO:
+            mode = 'L';
+            break;
+    }
+    
+    _gcs->send_text(MAV_SEVERITY_INFO, "VTX %c:%d %dMW %c", band, chan, mw, mode);
 }
 
-void AP_SmartAudio::set_power(int8_t value)
+bool AP_SmartAudio::set_power(int8_t value)
 {
+    if (_current_vtx_pwr == value)
+        return false;
+    
     DataFlash_Class::instance()->Log_Write_SMAUD_VTX((uint8_t)value, _power_zone, _power_mode);
     
-    switch(value)
-    {
-        case 0:	send_v2_command(command_power_0, 4); _gcs->send_text(MAV_SEVERITY_INFO, "VTX0"); break;                        
-        case 1:	send_v2_command(command_power_1, 4); _gcs->send_text(MAV_SEVERITY_INFO, "VTX1"); break;
-        case 2:	send_v2_command(command_power_2, 4); _gcs->send_text(MAV_SEVERITY_INFO, "VTX2"); break;
-        case 3:	send_v2_command(command_power_3, 4); _gcs->send_text(MAV_SEVERITY_INFO, "VTX3"); break;
-    }
+    uint8_t CMD_SET_POWER[] = { 0x05, 0x01, 0x00 };
+    CMD_SET_POWER[2] = (uint8_t)value;
     
-    _current_vtx_mode = value;
+    send_v2_command(CMD_SET_POWER, sizeof(CMD_SET_POWER));
+    
+    _current_vtx_pwr = value;
+    
+    AP_Notify::flags.vtx_power = value;
+    
+    return true;
+}
+
+void AP_SmartAudio::set_pit_mode(bool enabled)
+{
+    uint8_t CMD_SET_PIT_MODE[] = { 0x0B, 0x01, 0x00 };
+    CMD_SET_PIT_MODE[2] = enabled ? 0x01 : 0x04;
+    send_v2_command(CMD_SET_PIT_MODE, sizeof(CMD_SET_PIT_MODE));
+}
+
+bool AP_SmartAudio::update_channel()
+{
+    if (_current_vtx_ch == _channel)
+        return false;
+    
+    uint8_t CMD_SET_CH[] = { 0x07, 0x01, 0x00 };
+    CMD_SET_CH[2] = _channel;
+    send_v2_command(CMD_SET_CH, sizeof(CMD_SET_CH));
+    
+    _current_vtx_ch = _channel;
+    
+    AP_Notify::flags.vtx_channel = _channel;
+    
+    return true;
 }
 
 void AP_SmartAudio::toggle_recording()
@@ -138,34 +201,85 @@ void AP_SmartAudio::toggle_recording()
     _gcs->send_text(MAV_SEVERITY_INFO, "REC switch");
 }
 
-void AP_SmartAudio::check_home_distance(float meters)
+void AP_SmartAudio::update(float home_dist_meters)
 {
-    if (meters <= _auto_power_zone0)
+    bool command_sent = false;
+    
+    command_sent = update_channel();
+    
+    if (home_dist_meters <= _auto_power_zone0)
         _power_zone = 0;
-    else if (meters <= _auto_power_zone0 + _auto_power_zone1)
+    else if (home_dist_meters <= _auto_power_zone0 + _auto_power_zone1)
         _power_zone = 1;
-    else if (meters <= _auto_power_zone0 + _auto_power_zone1 + _auto_power_zone2)
+    else if (home_dist_meters <= _auto_power_zone0 + _auto_power_zone1 + _auto_power_zone2)
         _power_zone = 2;
     else
         _power_zone = 3;
     
-    if (is_auto_power_enabled() && _current_vtx_mode != _power_zone)
-        set_power(_power_zone);        
+    // If other command was sent then exit to make some pause before another possible command
+    if (!command_sent)
+    {
+        int8_t desired_power;
+        
+        if (is_auto_power_enabled()){        
+            desired_power = _power_zone;        
+        }
+        else if (_power_mode == SMARTAUDIO_POWER_MODE_HI){
+            desired_power = _power_hi;
+        }
+        else {
+            desired_power = _power_lo;
+        }
+        
+        command_sent = set_power(desired_power);        
+    }
+    
+    if (command_sent) {
+        msg_pending = true;
+    }
+    else if (msg_pending){
+        send_text();
+        msg_pending = false;
+    }
 }
 
 void AP_SmartAudio::send_v2_command(uint8_t* data, uint8_t len)
 {
+    // Reserve 2 bytes for sync and header
+    if (len > SMARTAUDIO_V2_COMMAND_LEN_MAX - 2)
+        return;
+    
 	if (activate_port(SMARTAUDIO_PORT_MODE_SMAUDv2))
 	{
-		_port->write((uint8_t)SMARTAUDIO_V2_COMMAND_LOW);
-		_port->write((uint8_t)SMARTAUDIO_V2_COMMAND_SYNC);
-		_port->write((uint8_t)SMARTAUDIO_V2_COMMAND_HEADER);
-		
-		for(int i=0; i<len; ++i)
+        uint8_t buflen = 2;
+        _command_buffer[0] = (uint8_t)SMARTAUDIO_V2_COMMAND_SYNC;
+        _command_buffer[1] = (uint8_t)SMARTAUDIO_V2_COMMAND_HEADER;
+        
+        for(int i=0; i<len; ++i)
 		{
-			_port->write(*data++);
+			_command_buffer[buflen++] = *data++;
 		}
+        
+        uint8_t crc = crc8(_command_buffer, buflen);
+        
+		_port->write((uint8_t)SMARTAUDIO_V2_COMMAND_LOW);
+        
+		for(int i=0; i<buflen; ++i)
+		{
+			_port->write(_command_buffer[i]);
+		}
+        
+        _port->write(crc);
 	}
+}
+
+uint8_t AP_SmartAudio::crc8(const uint8_t* ptr, uint8_t len)
+{
+    uint8_t crc = 0;
+    for (uint8_t i=0; i<len; i++) {
+        crc = crc8tab[crc ^ *ptr++];
+    }
+    return crc;
 }
 
 void AP_SmartAudio::send_rc_split_command(uint8_t* data, uint8_t len)

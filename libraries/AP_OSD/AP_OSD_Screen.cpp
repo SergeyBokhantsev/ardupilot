@@ -591,7 +591,49 @@ void AP_OSD_Screen::draw_estimation(uint8_t x, uint8_t y)
         backend->write(x, y, false, "%3d", avrg_fly_time.get());
     }     
 }
+/* 
+void AP_OSD_Screen::draw_vtx_channel(uint8_t x, uint8_t y)
+{
+    // Band A
+    if (AP_Notify::flags.vtx_channel < 8) {
+        backend->write(x, y, blink, "A%d", AP_Notify::flags.vtx_channel);
+    } 
+    // Band B
+    else if (AP_Notify::flags.vtx_channel < 16) {
+        backend->write(x, y, blink, "B%d", AP_Notify::flags.vtx_channel - 8);
+    }
+    // Band E
+    else if (AP_Notify::flags.vtx_channel < 24) {
+        backend->write(x, y, blink, "E%d", AP_Notify::flags.vtx_channel - 16);
+    }
+    // Band Airwave
+    else if (AP_Notify::flags.vtx_channel < 32) {
+        backend->write(x, y, blink, "W%d", AP_Notify::flags.vtx_channel - 24);
+    }
+    // Band Race
+    else if (AP_Notify::flags.vtx_channel < 40) {
+        backend->write(x, y, blink, "R%d", AP_Notify::flags.vtx_channel - 32);
+    }    
+}
 
+void AP_OSD_Screen::draw_vtx_power(uint8_t x, uint8_t y)
+{
+    switch(AP_Notify::flags.vtx_power){
+        case 0:
+            backend->write(x, y, blink, "25");
+            break;
+        case 1:
+            backend->write(x, y, blink, "200");
+            break;
+        case 2:
+            backend->write(x, y, blink, "600");
+            break;
+        case 3:
+            backend->write(x, y, blink, "1200");
+            break;
+    }
+}
+ */
 void AP_OSD_Screen::draw_fltmode(uint8_t x, uint8_t y)
 {
     AP_Notify * notify = AP_Notify::instance();
