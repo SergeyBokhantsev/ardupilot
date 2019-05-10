@@ -237,35 +237,97 @@ void AP_SmartAudio::update(float home_dist_meters)
     }
 }
 
-void AP_SmartAudio::send_v2_command(uint8_t command, uint8_t* data, uint8_t len)
+void AP_SmartAudio::create_command(uint8_t command, uint8_t* data, uint8_t* len)
+{
+    _buffer_len
+    
+    // Reserve 2 bytes for sync and header
+    if (*len > SMARTAUDIO_V2_COMMAND_LEN_MAX - 2)
+        return;
+}
+
+bool AP_SmartAudio::send_v2_command(uint8_t command, uint8_t* data, uint8_t data_len)
 {
     // Reserve 2 bytes for sync and header
-    if (len > SMARTAUDIO_V2_COMMAND_LEN_MAX - 2)
-        return;
+    if (data_len > SMARTAUDIO_V2_COMMAND_LEN_MAX - 4)
+        return false;
     
 	if (activate_port(SMARTAUDIO_PORT_MODE_SMAUDv2))
 	{
-        uint8_t buflen = 4;
-        _command_buffer[0] = (uint8_t)SMARTAUDIO_V2_COMMAND_SYNC;
-        _command_buffer[1] = (uint8_t)SMARTAUDIO_V2_COMMAND_HEADER;
-        _command_buffer[2] = (command << 1) | 0x01;
-        _command_buffer[3] = len;
+        uint8_t outcoming_command = (*command << 1) | 0x01;
         
-        for(int i=0; i<len; ++i)
+        _buffer[0] = (uint8_t)SMARTAUDIO_V2_COMMAND_SYNC;
+        _buffer[1] = (uint8_t)SMARTAUDIO_V2_COMMAND_HEADER;
+        _buffer[2] = outcoming_command;
+        _buffer[3] = data_len;
+        _buffer_len = 4;
+        
+        for(int i=0; i<*len; ++i)
 		{
-			_command_buffer[buflen++] = *data++;
+			_buffer[buflen++] = *data++;
 		}
         
-        uint8_t crc = crc8(_command_buffer, buflen);
+        uint8_t crc = crc8(_buffer, buflen);
         
-		_port->write((uint8_t)SMARTAUDIO_V2_COMMAND_LOW);
-        
-		for(int i=0; i<buflen; ++i)
+        // Write
+		_port->write((uint8_t)SMARTAUDIO_V2_COMMAND_LOW);        
+		for(int i=0; i < _buffer_len; ++i)
 		{
-			_port->write(_command_buffer[i]);
-		}
-        
+			_port->write(_buffer[i]);
+		}        
         _port->write(crc);
+        
+        // Read
+        int16_t elapsedMs;
+        int8_t delayMs = 20;
+        uint8_t state = 0;
+        uint8_t received = 0;
+        
+        if (_port->available()){
+            int16_t b = _port->read();
+            
+            if (b < 0 || b > 255) return false;
+            
+            switch (state) {
+                // Looking for SMARTAUDIO_V2_COMMAND_SYNC
+                case 0:
+                    if (b == SMARTAUDIO_V2_COMMAND_SYNC) state++; 
+                    break;
+                    // Looking for SMARTAUDIO_V2_COMMAND_HEADER
+                case 1:
+                    if (b == SMARTAUDIO_V2_COMMAND_HEADER) state++; 
+                    break;
+                    // Looking for command
+                case 2:
+                    if (b != outcoming_command) {
+                        _buffer[2] = b;
+                        state++; 
+                    }
+                    else state = 0; //we've catch own echo, so repeat waiting for the VTX response
+                    break;
+                case 3:
+                    _buffer[3] = data_len = b;
+                    if (data_len > SMARTAUDIO_V2_COMMAND_LEN_MAX - 4) {
+                        return false;
+                    }
+                    state++;
+                    break;
+                case 4:
+                    if (received < data_len) {
+                        _buffer[4 + received++] = b;
+                    }
+                    else {
+                        return true;
+                    }
+            }
+        }
+        else if (elapsedMs < 2000) {            
+            hal.scheduler->delay(delayMs);
+            elapsedMs += delayMs;
+        }
+        else {
+            return false;
+        }
 	}
 }
 

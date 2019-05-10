@@ -62,7 +62,8 @@ private:
     void send_text();
 
     AP_HAL::UARTDriver *_port;
-    uint8_t _command_buffer[SMARTAUDIO_V2_COMMAND_LEN_MAX];
+    uint8_t _buffer[SMARTAUDIO_V2_COMMAND_LEN_MAX];
+    uint8_t _buffer_len;
     
     GCS *_gcs;
     bool msg_pending;
@@ -91,7 +92,9 @@ private:
     bool is_auto_power_enabled() { return _power_mode == SMARTAUDIO_POWER_MODE_AUTO && _auto_power_zone0 > 0 && _auto_power_zone1 > 0 && _auto_power_zone2 > 0; }
 
     bool activate_port(uint8_t mode);
-    void send_v2_command(uint8_t command, uint8_t* data, uint8_t len);
+    
+    bool send_v2_command(uint8_t command, uint8_t* data, uint8_t data_len);
+    
     void send_rc_split_command(uint8_t* data, uint8_t len);
     
     uint8_t crc8(const uint8_t* ptr, uint8_t len);
