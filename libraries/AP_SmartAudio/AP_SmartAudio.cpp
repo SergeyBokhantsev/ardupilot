@@ -160,10 +160,7 @@ bool AP_SmartAudio::set_power(int8_t value)
     
     DataFlash_Class::instance()->Log_Write_SMAUD_VTX((uint8_t)value, _power_zone, _power_mode);
     
-    uint8_t CMD_SET_POWER[] = { 0x05, 0x01, 0x00 };
-    CMD_SET_POWER[2] = (uint8_t)value;
-    
-    send_v2_command(CMD_SET_POWER, sizeof(CMD_SET_POWER));
+    send_v2_command(SMARTAUDIO_V2_COMMAND_SET_POWER, (uint8_t*)&value, 1);
     
     _current_vtx_pwr = value;
     
@@ -174,9 +171,8 @@ bool AP_SmartAudio::set_power(int8_t value)
 
 void AP_SmartAudio::set_pit_mode(bool enabled)
 {
-    uint8_t CMD_SET_PIT_MODE[] = { 0x0B, 0x01, 0x00 };
-    CMD_SET_PIT_MODE[2] = enabled ? 0x01 : 0x04;
-    send_v2_command(CMD_SET_PIT_MODE, sizeof(CMD_SET_PIT_MODE));
+    uint8_t value = enabled ? 0x01 : 0x04;
+    send_v2_command(SMARTAUDIO_V2_COMMAND_SET_MODE, &value, 1);
 }
 
 bool AP_SmartAudio::update_channel()
@@ -184,11 +180,9 @@ bool AP_SmartAudio::update_channel()
     if (_current_vtx_ch == _channel)
         return false;
     
-    uint8_t CMD_SET_CH[] = { 0x07, 0x01, 0x00 };
-    CMD_SET_CH[2] = _channel;
-    send_v2_command(CMD_SET_CH, sizeof(CMD_SET_CH));
-    
     _current_vtx_ch = _channel;
+    
+    send_v2_command(SMARTAUDIO_V2_COMMAND_SET_CHANNEL, (uint8_t*)(&_current_vtx_ch), 1);
     
     AP_Notify::flags.vtx_channel = _channel;
     
@@ -243,7 +237,7 @@ void AP_SmartAudio::update(float home_dist_meters)
     }
 }
 
-void AP_SmartAudio::send_v2_command(uint8_t* data, uint8_t len)
+void AP_SmartAudio::send_v2_command(uint8_t command, uint8_t* data, uint8_t len)
 {
     // Reserve 2 bytes for sync and header
     if (len > SMARTAUDIO_V2_COMMAND_LEN_MAX - 2)
@@ -251,9 +245,11 @@ void AP_SmartAudio::send_v2_command(uint8_t* data, uint8_t len)
     
 	if (activate_port(SMARTAUDIO_PORT_MODE_SMAUDv2))
 	{
-        uint8_t buflen = 2;
+        uint8_t buflen = 4;
         _command_buffer[0] = (uint8_t)SMARTAUDIO_V2_COMMAND_SYNC;
         _command_buffer[1] = (uint8_t)SMARTAUDIO_V2_COMMAND_HEADER;
+        _command_buffer[2] = (command << 1) | 0x01;
+        _command_buffer[3] = len;
         
         for(int i=0; i<len; ++i)
 		{
