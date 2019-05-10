@@ -9,7 +9,6 @@
 #define SMARTAUDIO_V2_BAUDRATE 4800
 #define SMARTAUDIO_RC_SPLIT_BAUDRATE 115200
 
-#define SMARTAUDIO_V2_COMMAND_LOW 0x00
 #define SMARTAUDIO_V2_COMMAND_SYNC 0xAA
 #define SMARTAUDIO_V2_COMMAND_HEADER 0x55
 
@@ -73,6 +72,7 @@ private:
                 } meta;
             uint8_t data[SMARTAUDIO_V2_COMMAND_LEN_MAX];
             uint8_t size() { return sizeof(meta) + meta.data_len; }
+            uint8_t* ptr() { return (uint8_t*)this; }
         } frame;       
     
     GCS *_gcs;

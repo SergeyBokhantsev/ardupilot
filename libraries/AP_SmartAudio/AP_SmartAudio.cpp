@@ -260,12 +260,12 @@ bool AP_SmartAudio::send_v2_command(uint8_t command, uint8_t* data, uint8_t len)
         uint8_t size = frame.size();
         uint8_t crc = crc8();
         
-		_port->write(SMARTAUDIO_V2_COMMAND_LOW);         
+		_port->write((uint8_t)0x00);      
 		for(int i=0; i < size; ++i)
 		{
-			_port->write(framePtr[i]);
+			_port->write(frame.ptr()[i]);
 		}        
-        _port->write(crc8);
+        _port->write(crc);
         
         // Read
         int16_t elapsedMs = 0;
@@ -337,9 +337,8 @@ uint8_t AP_SmartAudio::crc8()
 {
     uint8_t crc = 0;
     uint8_t size = frame.size();
-    uint8_t* ptr = (uint8_t*)&frame;
-    for (uint8_t i=0; i<len; i++) {
-        crc = crc8tab[crc ^ *ptr++];
+    for (uint8_t i=0; i<size; i++) {
+        crc = crc8tab[crc ^ frame.ptr()[i]];
     }
     return crc;
 }
