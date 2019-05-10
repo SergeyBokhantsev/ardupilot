@@ -62,7 +62,9 @@ private:
     void send_text();
 
     AP_HAL::UARTDriver *_port;
-    union {
+    
+    union Frame {
+        Frame() { }
             struct PACKED {
                 uint8_t sync = SMARTAUDIO_V2_COMMAND_SYNC;
                 uint8_t header = SMARTAUDIO_V2_COMMAND_HEADER;
@@ -70,6 +72,7 @@ private:
                 uint8_t data_len;
                 } meta;
             uint8_t data[SMARTAUDIO_V2_COMMAND_LEN_MAX];
+            uint8_t size() { return sizeof(meta) + meta.data_len; }
         } frame;       
     
     GCS *_gcs;

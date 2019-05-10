@@ -1,5 +1,6 @@
 #include "AP_SmartAudio.h"
 #include <AP_Notify/AP_Notify.h>
+#include <AP_HAL/AP_HAL.h>
 
 const AP_Param::GroupInfo AP_SmartAudio::var_info[] = {
     // @Param: PWRHI
@@ -46,6 +47,8 @@ const AP_Param::GroupInfo AP_SmartAudio::var_info[] = {
     
     AP_GROUPEND
 };
+
+extern const AP_HAL::HAL& hal;
 
 AP_SmartAudio::AP_SmartAudio() : 
 _uart_exists(false),
@@ -253,21 +256,19 @@ bool AP_SmartAudio::send_v2_command(uint8_t command, uint8_t* data, uint8_t len)
             frame.data[i] = data[i];
         }
         
-        uint8_t* framePtr = (uint8_t*)&frame;
-        uint8_t frameLen = sizeof(frame.meta) + frame.meta.data_len;
-        
-        uint8_t crc = crc8(framePtr, frameLen);
-       
         // Write        
+        uint8_t size = frame.size();
+        uint8_t crc = crc8();
+        
 		_port->write(SMARTAUDIO_V2_COMMAND_LOW);         
-		for(int i=0; i < frameLen; ++i)
+		for(int i=0; i < size; ++i)
 		{
 			_port->write(framePtr[i]);
 		}        
-        _port->write(crc);
+        _port->write(crc8);
         
         // Read
-        int16_t elapsedMs;
+        int16_t elapsedMs = 0;
         int8_t delayMs = 20;
         uint8_t state = 0;
         uint8_t received = 0;
@@ -304,7 +305,7 @@ bool AP_SmartAudio::send_v2_command(uint8_t command, uint8_t* data, uint8_t len)
                     break;
                     // READING DATA
                 case 4:
-                    if (received < data_len) {
+                    if (received < frame.meta.data_len) {
                         frame.data[received++] = b;
                     }
                     else {
@@ -313,7 +314,7 @@ bool AP_SmartAudio::send_v2_command(uint8_t command, uint8_t* data, uint8_t len)
                     break;
                     // CRC
                 case 5:
-                    if (crc8(framePtr, sizeof(frame.meta) + received) == b) {
+                    if (crc8() == b) {
                         return true;
                     }
                     else {
@@ -332,9 +333,11 @@ bool AP_SmartAudio::send_v2_command(uint8_t command, uint8_t* data, uint8_t len)
 	}
 }
 
-uint8_t AP_SmartAudio::crc8(const uint8_t* ptr, uint8_t len)
+uint8_t AP_SmartAudio::crc8()
 {
     uint8_t crc = 0;
+    uint8_t size = frame.size();
+    uint8_t* ptr = (uint8_t*)&frame;
     for (uint8_t i=0; i<len; i++) {
         crc = crc8tab[crc ^ *ptr++];
     }
