@@ -157,22 +157,24 @@ bool AP_SmartAudio::set_power(int8_t value)
 {
     if (_current_vtx_pwr == value)
         return false;
-    
-    DataFlash_Class::instance()->Log_Write_SMAUD_VTX((uint8_t)value, _power_zone, _power_mode);
-    
-    send_v2_command(SMARTAUDIO_V2_COMMAND_SET_POWER, (uint8_t*)&value, 1);
-    
-    _current_vtx_pwr = value;
-    
-    AP_Notify::flags.vtx_power = value;
-    
-    return true;
+        
+    if (send_v2_command(SMARTAUDIO_V2_COMMAND_SET_POWER, (uint8_t*)&value, 1)
+        && frame.meta.command == SMARTAUDIO_V2_COMMAND_SET_POWER
+        && frame.meta.data_len == 1) {
+        _current_vtx_pwr = frame.data[0];
+        DataFlash_Class::instance()->Log_Write_SMAUD_VTX((uint8_t)_current_vtx_pwr, _power_zone, _power_mode);        
+        AP_Notify::flags.vtx_power = _current_vtx_pwr;
+        return true;
+    }
 }
 
 void AP_SmartAudio::set_pit_mode(bool enabled)
 {
     uint8_t value = enabled ? 0x01 : 0x04;
-    send_v2_command(SMARTAUDIO_V2_COMMAND_SET_MODE, &value, 1);
+    if (send_v2_command(SMARTAUDIO_V2_COMMAND_SET_MODE, &value, 1))
+    {
+        
+    }
 }
 
 bool AP_SmartAudio::update_channel()
@@ -237,43 +239,30 @@ void AP_SmartAudio::update(float home_dist_meters)
     }
 }
 
-void AP_SmartAudio::create_command(uint8_t command, uint8_t* data, uint8_t* len)
+bool AP_SmartAudio::send_v2_command(uint8_t command, uint8_t* data, uint8_t len)
 {
-    _buffer_len
-    
-    // Reserve 2 bytes for sync and header
-    if (*len > SMARTAUDIO_V2_COMMAND_LEN_MAX - 2)
-        return;
-}
-
-bool AP_SmartAudio::send_v2_command(uint8_t command, uint8_t* data, uint8_t data_len)
-{
-    // Reserve 2 bytes for sync and header
-    if (data_len > SMARTAUDIO_V2_COMMAND_LEN_MAX - 4)
+    if (len > SMARTAUDIO_V2_COMMAND_LEN_MAX)
         return false;
     
 	if (activate_port(SMARTAUDIO_PORT_MODE_SMAUDv2))
 	{
-        uint8_t outcoming_command = (*command << 1) | 0x01;
+        frame.meta.command = (command << 1) | 0x01;
+        frame.meta.data_len = len;
         
-        _buffer[0] = (uint8_t)SMARTAUDIO_V2_COMMAND_SYNC;
-        _buffer[1] = (uint8_t)SMARTAUDIO_V2_COMMAND_HEADER;
-        _buffer[2] = outcoming_command;
-        _buffer[3] = data_len;
-        _buffer_len = 4;
+        for (int i=0; i<len; ++i) {
+            frame.data[i] = data[i];
+        }
         
-        for(int i=0; i<*len; ++i)
+        uint8_t* framePtr = (uint8_t*)&frame;
+        uint8_t frameLen = sizeof(frame.meta) + frame.meta.data_len;
+        
+        uint8_t crc = crc8(framePtr, frameLen);
+       
+        // Write        
+		_port->write(SMARTAUDIO_V2_COMMAND_LOW);         
+		for(int i=0; i < frameLen; ++i)
 		{
-			_buffer[buflen++] = *data++;
-		}
-        
-        uint8_t crc = crc8(_buffer, buflen);
-        
-        // Write
-		_port->write((uint8_t)SMARTAUDIO_V2_COMMAND_LOW);        
-		for(int i=0; i < _buffer_len; ++i)
-		{
-			_port->write(_buffer[i]);
+			_port->write(framePtr[i]);
 		}        
         _port->write(crc);
         
@@ -297,31 +286,43 @@ bool AP_SmartAudio::send_v2_command(uint8_t command, uint8_t* data, uint8_t data
                 case 1:
                     if (b == SMARTAUDIO_V2_COMMAND_HEADER) state++; 
                     break;
-                    // Looking for command
+                    // COMMAND
                 case 2:
-                    if (b != outcoming_command) {
-                        _buffer[2] = b;
+                    if (b != frame.meta.command) {
+                        frame.meta.command = b;
                         state++; 
                     }
                     else state = 0; //we've catch own echo, so repeat waiting for the VTX response
                     break;
+                    // DATA LEN
                 case 3:
-                    _buffer[3] = data_len = b;
-                    if (data_len > SMARTAUDIO_V2_COMMAND_LEN_MAX - 4) {
+                    frame.meta.data_len = b;
+                    if (frame.meta.data_len > SMARTAUDIO_V2_COMMAND_LEN_MAX) {
                         return false;
                     }
                     state++;
                     break;
+                    // READING DATA
                 case 4:
                     if (received < data_len) {
-                        _buffer[4 + received++] = b;
+                        frame.data[received++] = b;
                     }
                     else {
+                        state++;
+                    }
+                    break;
+                    // CRC
+                case 5:
+                    if (crc8(framePtr, sizeof(frame.meta) + received) == b) {
                         return true;
                     }
+                    else {
+                        return false;
+                    }
+                    break;
             }
         }
-        else if (elapsedMs < 2000) {            
+        else if (elapsedMs < 1000) {            
             hal.scheduler->delay(delayMs);
             elapsedMs += delayMs;
         }

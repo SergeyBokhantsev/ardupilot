@@ -62,8 +62,15 @@ private:
     void send_text();
 
     AP_HAL::UARTDriver *_port;
-    uint8_t _buffer[SMARTAUDIO_V2_COMMAND_LEN_MAX];
-    uint8_t _buffer_len;
+    union {
+            struct PACKED {
+                uint8_t sync = SMARTAUDIO_V2_COMMAND_SYNC;
+                uint8_t header = SMARTAUDIO_V2_COMMAND_HEADER;
+                uint8_t command;
+                uint8_t data_len;
+                } meta;
+            uint8_t data[SMARTAUDIO_V2_COMMAND_LEN_MAX];
+        } frame;       
     
     GCS *_gcs;
     bool msg_pending;
@@ -97,7 +104,7 @@ private:
     
     void send_rc_split_command(uint8_t* data, uint8_t len);
     
-    uint8_t crc8(const uint8_t* ptr, uint8_t len);
+    uint8_t crc8();
     
     const unsigned char crc8tab[256] = {
         0x00, 0xD5, 0x7F, 0xAA, 0xFE, 0x2B, 0x81, 0x54, 0x29, 0xFC, 0x56, 0x83, 0xD7, 0x02, 0xA8, 0x7D,
