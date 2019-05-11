@@ -993,7 +993,7 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
 #endif
 
 #ifdef USER_PARAMS_ENABLED
-    AP_SUBGROUPINFO(follow, "USR", 28, ParametersG2, UserParameters),
+    AP_SUBGROUPINFO(follow, "USR", 29, ParametersG2, UserParameters),
 #endif
 
     AP_GROUPEND

@@ -1,4 +1,5 @@
 #include "UserParameters.h"
+#include "defines.h"
 
 // "USR" + 13 chars remaining for param name 
 const AP_Param::GroupInfo UserParameters::var_info[] = {

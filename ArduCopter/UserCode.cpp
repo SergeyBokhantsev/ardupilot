@@ -66,18 +66,18 @@ void Copter::userhook_SuperSlowLoop()
 // (CHx_OPT = 47)
 void Copter::userhook_auxSwitch1(uint8_t ch_flag)
 {
-    g2.user_parameters.doSwitch(1, uint8_t ch_flag, g2.smart_audio);
+    g2.user_parameters.doSwitch(1, ch_flag, g2.smart_audio);
 }
 
 // (CHx_OPT = 48)
 void Copter::userhook_auxSwitch2(uint8_t ch_flag)
 {
-    g2.user_parameters.doSwitch(2, uint8_t ch_flag, g2.smart_audio);
+    g2.user_parameters.doSwitch(2, ch_flag, g2.smart_audio);
 }
 
 // (CHx_OPT = 49)
 void Copter::userhook_auxSwitch3(uint8_t ch_flag)
 {    
-    g2.user_parameters.doSwitch(3, uint8_t ch_flag, g2.smart_audio);
+    g2.user_parameters.doSwitch(3, ch_flag, g2.smart_audio);
 }
 #endif
