@@ -169,6 +169,8 @@ bool AP_SmartAudio::set_power(int8_t value)
         AP_Notify::flags.vtx_power = _current_vtx_pwr;
         return true;
     }
+    
+    return false;
 }
 
 void AP_SmartAudio::set_pit_mode(bool enabled)
@@ -249,23 +251,27 @@ bool AP_SmartAudio::send_v2_command(uint8_t command, uint8_t* data, uint8_t len)
     
 	if (activate_port(SMARTAUDIO_PORT_MODE_SMAUDv2))
 	{
-        frame.meta.command = (command << 1) | 0x01;
-        frame.meta.data_len = len;
+        frame.command = (command << 1) | 0x01;
+        frame.data_len = len;
         
         for (int i=0; i<len; ++i) {
             frame.data[i] = data[i];
         }
         
         // Write        
-        uint8_t size = frame.size();
-        uint8_t crc = crc8();
+        uint8_t* ptr = (uint8_t*)&frame;            
+        uint8_t size = frame.data_len + 4;
         
-		_port->write((uint8_t)0x00);      
+		_port->write((uint8_t)0x00);     
+        
 		for(int i=0; i < size; ++i)
 		{
-			_port->write(frame.ptr()[i]);
-		}        
-        _port->write(crc);
+			_port->write(ptr[i]);
+		}
+        
+        _port->write(crc8());
+        
+        return true;
         
         // Read
         int16_t elapsedMs = 0;
@@ -333,13 +339,18 @@ bool AP_SmartAudio::send_v2_command(uint8_t command, uint8_t* data, uint8_t len)
 	}
 }
 
-uint8_t AP_SmartAudio::crc8()
+void AP_SmartAudio::crc8()
 {
     uint8_t crc = 0;
-    uint8_t size = frame.size();
-    for (uint8_t i=0; i<size; i++) {
-        crc = crc8tab[crc ^ frame.ptr()[i]];
-    }
+    
+    uint8_t* ptr = (uint8_t*)&frame;            
+    uint8_t size = frame.data_len + 4;
+        
+		for(int i=0; i < size; ++i)
+		{
+			crc = crc8tab[crc ^ ptr[i]];
+		}
+        
     return crc;
 }
 

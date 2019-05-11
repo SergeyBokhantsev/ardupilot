@@ -62,6 +62,20 @@ private:
 
     AP_HAL::UARTDriver *_port;
     
+    //uint8_t data[SMARTAUDIO_V2_COMMAND_LEN_MAX];
+    //uint8_t data_len;
+    
+    struct PACKED {
+            //private:
+                uint8_t sync = SMARTAUDIO_V2_COMMAND_SYNC;
+                uint8_t header = SMARTAUDIO_V2_COMMAND_HEADER;
+            //public:
+                uint8_t command;
+                uint8_t data_len;
+                uint8_t data[SMARTAUDIO_V2_COMMAND_LEN_MAX];
+                } frame;
+    
+    /* 
     union Frame {
         Frame() { }
             struct PACKED {
@@ -74,9 +88,9 @@ private:
                 } meta;
             uint8_t data[SMARTAUDIO_V2_COMMAND_LEN_MAX];
             uint8_t size() { return sizeof(meta) + meta.data_len; }
-            uint8_t* ptr() { return (uint8_t*)this; }
         } frame;       
-    
+     */
+     
     GCS *_gcs;
     bool msg_pending;
     
