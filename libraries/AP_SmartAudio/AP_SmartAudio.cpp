@@ -161,9 +161,10 @@ bool AP_SmartAudio::set_power(int8_t value)
     if (_current_vtx_pwr == value)
         return false;
         
-    if (send_v2_command(SMARTAUDIO_V2_COMMAND_SET_POWER, (uint8_t*)&value, 1)
-        && frame.meta.command == SMARTAUDIO_V2_COMMAND_SET_POWER
-        && frame.meta.data_len == 1) {
+    if (send_v2_command(SMARTAUDIO_V2_COMMAND_SET_POWER, (uint8_t*)&value, 1))
+        //&& frame.meta.command == SMARTAUDIO_V2_COMMAND_SET_POWER
+        //&& frame.meta.data_len == 1) 
+        {
         _current_vtx_pwr = frame.data[0];
         DataFlash_Class::instance()->Log_Write_SMAUD_VTX((uint8_t)_current_vtx_pwr, _power_zone, _power_mode);        
         AP_Notify::flags.vtx_power = _current_vtx_pwr;
@@ -271,8 +272,6 @@ bool AP_SmartAudio::send_v2_command(uint8_t command, uint8_t* data, uint8_t len)
         
         _port->write(crc8());
         
-        return true;
-        
         // Read
         int16_t elapsedMs = 0;
         int8_t delayMs = 20;
@@ -295,23 +294,27 @@ bool AP_SmartAudio::send_v2_command(uint8_t command, uint8_t* data, uint8_t len)
                     break;
                     // COMMAND
                 case 2:
-                    if (b != frame.meta.command) {
-                        frame.meta.command = b;
+                    if (b != frame.command) {
+                        frame.command = b;
                         state++; 
                     }
-                    else state = 0; //we've catch own echo, so repeat waiting for the VTX response
+                    else {
+                        state = 0; //we've catch own echo, so repeat waiting for the VTX response
+                        _gcs->send_text(MAV_SEVERITY_INFO, "ECHO");
+                    }
                     break;
                     // DATA LEN
                 case 3:
-                    frame.meta.data_len = b;
-                    if (frame.meta.data_len > SMARTAUDIO_V2_COMMAND_LEN_MAX) {
+                    frame.data_len = b;
+                    if (frame.data_len > SMARTAUDIO_V2_COMMAND_LEN_MAX) {
+                        _gcs->send_text(MAV_SEVERITY_INFO, "OVERSIZE");
                         return false;
                     }
                     state++;
                     break;
                     // READING DATA
                 case 4:
-                    if (received < frame.meta.data_len) {
+                    if (received < frame.data_len) {
                         frame.data[received++] = b;
                     }
                     else {
@@ -321,25 +324,28 @@ bool AP_SmartAudio::send_v2_command(uint8_t command, uint8_t* data, uint8_t len)
                     // CRC
                 case 5:
                     if (crc8() == b) {
+                        _gcs->send_text(MAV_SEVERITY_INFO, "OK");
                         return true;
                     }
                     else {
+                        _gcs->send_text(MAV_SEVERITY_INFO, "BAD CRC");
                         return false;
                     }
                     break;
             }
         }
-        else if (elapsedMs < 1000) {            
+        else if (elapsedMs < 2000) {            
             hal.scheduler->delay(delayMs);
             elapsedMs += delayMs;
         }
         else {
+            _gcs->send_text(MAV_SEVERITY_INFO, "Timeout");
             return false;
         }
 	}
 }
 
-void AP_SmartAudio::crc8()
+uint8_t AP_SmartAudio::crc8()
 {
     uint8_t crc = 0;
     
