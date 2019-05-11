@@ -65,8 +65,10 @@ private:
     union Frame {
         Frame() { }
             struct PACKED {
+            private:
                 uint8_t sync = SMARTAUDIO_V2_COMMAND_SYNC;
                 uint8_t header = SMARTAUDIO_V2_COMMAND_HEADER;
+            public:
                 uint8_t command;
                 uint8_t data_len;
                 } meta;
