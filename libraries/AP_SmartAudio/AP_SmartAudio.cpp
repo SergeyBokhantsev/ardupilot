@@ -105,6 +105,8 @@ bool AP_SmartAudio::activate_port(uint8_t mode)
 
 void AP_SmartAudio::send_text()
 {
+    return;
+    
     int mw = _current_vtx_pwr == 0 ? 25
            : _current_vtx_pwr == 1 ? 200
            : _current_vtx_pwr == 2 ? 600
@@ -177,7 +179,7 @@ bool AP_SmartAudio::set_power(int8_t value)
 void AP_SmartAudio::set_pit_mode(bool enabled)
 {
     uint8_t value = enabled ? 0x01 : 0x04;
-    if (send_v2_command(SMARTAUDIO_V2_COMMAND_SET_MODE, &value, 1))
+    if (send_v2_command(SMARTAUDIO_V2_COMMAND_GET_SETTINGS, nullptr, 0))
     {
         
     }
@@ -255,8 +257,11 @@ bool AP_SmartAudio::send_v2_command(uint8_t command, uint8_t* data, uint8_t len)
         frame.command = (command << 1) | 0x01;
         frame.data_len = len;
         
-        for (int i=0; i<len; ++i) {
-            frame.data[i] = data[i];
+        if (len > 0)
+        {
+            for (int i=0; i<len; ++i) {
+                frame.data[i] = data[i];
+            }
         }
         
         // Write        
@@ -275,72 +280,23 @@ bool AP_SmartAudio::send_v2_command(uint8_t command, uint8_t* data, uint8_t len)
         // Read
         int16_t elapsedMs = 0;
         int8_t delayMs = 20;
-        uint8_t state = 0;
+        //uint8_t state = 0;
         uint8_t received = 0;
         
-        if (_port->available()){
-            int16_t b = _port->read();
-            
-            if (b < 0 || b > 255) return false;
-            
-            switch (state) {
-                // Looking for SMARTAUDIO_V2_COMMAND_SYNC
-                case 0:
-                    if (b == SMARTAUDIO_V2_COMMAND_SYNC) state++; 
-                    break;
-                    // Looking for SMARTAUDIO_V2_COMMAND_HEADER
-                case 1:
-                    if (b == SMARTAUDIO_V2_COMMAND_HEADER) state++; 
-                    break;
-                    // COMMAND
-                case 2:
-                    if (b != frame.command) {
-                        frame.command = b;
-                        state++; 
-                    }
-                    else {
-                        state = 0; //we've catch own echo, so repeat waiting for the VTX response
-                        _gcs->send_text(MAV_SEVERITY_INFO, "ECHO");
-                    }
-                    break;
-                    // DATA LEN
-                case 3:
-                    frame.data_len = b;
-                    if (frame.data_len > SMARTAUDIO_V2_COMMAND_LEN_MAX) {
-                        _gcs->send_text(MAV_SEVERITY_INFO, "OVERSIZE");
-                        return false;
-                    }
-                    state++;
-                    break;
-                    // READING DATA
-                case 4:
-                    if (received < frame.data_len) {
-                        frame.data[received++] = b;
-                    }
-                    else {
-                        state++;
-                    }
-                    break;
-                    // CRC
-                case 5:
-                    if (crc8() == b) {
-                        _gcs->send_text(MAV_SEVERITY_INFO, "OK");
-                        return true;
-                    }
-                    else {
-                        _gcs->send_text(MAV_SEVERITY_INFO, "BAD CRC");
-                        return false;
-                    }
-                    break;
+        while(true)
+        {
+            if (_port->available()){
+                int16_t b = _port->read();
+                received++;
             }
-        }
-        else if (elapsedMs < 2000) {            
-            hal.scheduler->delay(delayMs);
-            elapsedMs += delayMs;
-        }
-        else {
-            _gcs->send_text(MAV_SEVERITY_INFO, "Timeout");
-            return false;
+            else if (elapsedMs < 4000) {            
+                hal.scheduler->delay(delayMs);
+                elapsedMs += delayMs;
+            }
+            else {
+                _gcs->send_text(MAV_SEVERITY_INFO, "Received: %3d", received);
+                return true;
+            }
         }
 	}
 }
