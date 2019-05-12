@@ -335,6 +335,7 @@ public:
     AP_Int8 warn_nsat;
     AP_Int8 warn_amps;
     AP_Int8 bat_wh;
+    AP_Int8 power_static;
     AP_Float warn_batvolt;
     AP_Float warn_bat2volt;
     AP_Int8 msgtime_s;

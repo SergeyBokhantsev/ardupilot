@@ -519,6 +519,20 @@ void AP_OSD_Screen::draw_estimation(uint8_t x, uint8_t y)
             float power = battery.current_amps() * battery.voltage();
              
             if (power > 30.0f){
+                
+                float power_static = (float)osd->power_static;
+            
+                if (power_static > 0) {
+                    // If overconsumption then decrease power by average with 2:1 ratio
+                    if (power > power_static) {
+                        power = (power * 2 + power_static) / 3.0f;
+                    }
+                    // If underconsumption then increase power with 1:1 ratio
+                    else {
+                        power = (power + power_static) / 2.0f;
+                    }
+                }
+                
                 float fly_time = remain_wh / power * 3600.0f;
                 avrg_fly_time.set((uint16_t)(fly_time / 60.0f));
                 estimator_ctx.time_estimation = true;
