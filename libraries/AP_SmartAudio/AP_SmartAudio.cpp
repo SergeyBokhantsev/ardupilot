@@ -160,6 +160,8 @@ void AP_SmartAudio::send_text()
 
 bool AP_SmartAudio::set_power(int8_t value)
 {
+    return;
+    
     if (_current_vtx_pwr == value)
         return false;
         
@@ -187,6 +189,8 @@ void AP_SmartAudio::set_pit_mode(bool enabled)
 
 bool AP_SmartAudio::update_channel()
 {
+    return;
+    
     if (_current_vtx_ch == _channel)
         return false;
     
@@ -267,6 +271,9 @@ bool AP_SmartAudio::send_v2_command(uint8_t command, uint8_t* data, uint8_t len)
         // Write        
         uint8_t* ptr = (uint8_t*)&frame;            
         uint8_t size = frame.data_len + 4;
+        
+        _gcs->send_text(MAV_SEVERITY_INFO, "CRC: %d", crc8());
+        hal.scheduler->delay(3000);
         
 		_port->write((uint8_t)0x00);     
         
