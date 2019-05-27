@@ -21,4 +21,5 @@
 	url = git://github.com/ArduPilot/googletest
 [submodule "modules/ChibiOS"]
 	path = modules/ChibiOS
-	url = git://github.com/ArduPilot/ChibiOS.git
+	url = git://github.com/SergeyBokhantsev/ChibiOS.git
+	branch = 3.6-sb
