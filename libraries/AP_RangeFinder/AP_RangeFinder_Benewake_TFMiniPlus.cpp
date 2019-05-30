@@ -36,15 +36,14 @@ extern const AP_HAL::HAL& hal;
 
 AP_RangeFinder_Benewake_TFMiniPlus::AP_RangeFinder_Benewake_TFMiniPlus(
         RangeFinder::RangeFinder_State &_state,
-        AP_RangeFinder_Params &_params,
         AP_HAL::OwnPtr<AP_HAL::I2CDevice> dev)
-    : AP_RangeFinder_Backend(_state, _params)
+    : AP_RangeFinder_Backend(_state)
     , _dev(std::move(dev))
 {
 }
 
 AP_RangeFinder_Backend *AP_RangeFinder_Benewake_TFMiniPlus::detect(
-        RangeFinder::RangeFinder_State &_state, AP_RangeFinder_Params &_params,
+        RangeFinder::RangeFinder_State &_state,
         AP_HAL::OwnPtr<AP_HAL::I2CDevice> dev)
 {
     if (!dev) {
@@ -52,7 +51,7 @@ AP_RangeFinder_Backend *AP_RangeFinder_Benewake_TFMiniPlus::detect(
     }
 
     AP_RangeFinder_Benewake_TFMiniPlus *sensor
-        = new AP_RangeFinder_Benewake_TFMiniPlus(_state, _params, std::move(dev));
+        = new AP_RangeFinder_Benewake_TFMiniPlus(_state, std::move(dev));
 
     if (!sensor || !sensor->init()) {
         delete sensor;
@@ -68,11 +67,12 @@ bool AP_RangeFinder_Benewake_TFMiniPlus::init()
     const uint8_t CMD_SYSTEM_RESET[] =       { 0x5A, 0x04, 0x04, 0x62 };
     const uint8_t CMD_OUTPUT_FORMAT_CM[] =   { 0x5A, 0x05, 0x05, 0x01, 0x65 };
     const uint8_t CMD_ENABLE_DATA_OUTPUT[] = { 0x5A, 0x05, 0x07, 0x01, 0x67 };
-    const uint8_t CMD_FRAME_RATE_100HZ[] =   { 0x5A, 0x06, 0x03, 0x64, 0x00, 0xC7 };
+    //const uint8_t CMD_FRAME_RATE_100HZ[] =   { 0x5A, 0x06, 0x03, 0x64, 0x00, 0xC7 };
+    const uint8_t CMD_FRAME_RATE_20HZ[] =   { 0x5A, 0x06, 0x03, 0x14, 0x00, 0x77 };
     const uint8_t CMD_SAVE_SETTINGS[] =      { 0x5A, 0x04, 0x11, 0x6F };
     const uint8_t *cmds[] = {
         CMD_OUTPUT_FORMAT_CM,
-        CMD_FRAME_RATE_100HZ,
+        CMD_FRAME_RATE_20HZ,
         CMD_ENABLE_DATA_OUTPUT,
         CMD_SAVE_SETTINGS,
     };
@@ -120,11 +120,11 @@ bool AP_RangeFinder_Benewake_TFMiniPlus::init()
 
     _dev->transfer(CMD_SYSTEM_RESET, sizeof(CMD_SYSTEM_RESET), nullptr, 0);
 
-    _dev->get_semaphore()->give();
-
     hal.scheduler->delay(100);
 
-    _dev->register_periodic_callback(10000,
+    _dev->get_semaphore()->give();
+
+    _dev->register_periodic_callback(50000,
                                      FUNCTOR_BIND_MEMBER(&AP_RangeFinder_Benewake_TFMiniPlus::timer, void));
 
     return true;
@@ -136,31 +136,34 @@ fail:
 
 void AP_RangeFinder_Benewake_TFMiniPlus::update()
 {
-    WITH_SEMAPHORE(_sem);
-
-    if (accum.count > 0) {
-        state.distance_cm = accum.sum / accum.count;
-        state.last_reading_ms = AP_HAL::millis();
-        accum.sum = 0;
-        accum.count = 0;
-        update_status();
-    } else if (AP_HAL::millis() - state.last_reading_ms > 200) {
-        set_status(RangeFinder::RangeFinder_NoData);
+    if (_sem->take(HAL_SEMAPHORE_BLOCK_FOREVER)) {
+        if (accum.count > 0) {
+            state.distance_cm = accum.sum / accum.count;
+            state.voltage_mv = temperature;
+            last_reading_ms = AP_HAL::millis();
+            accum.sum = 0;
+            accum.count = 0;
+            update_status();
+        } else if (AP_HAL::millis() - last_reading_ms > 200) {
+            set_status(RangeFinder::RangeFinder_NoData);
+        }
+        _sem->give();
     }
 }
 
-bool AP_RangeFinder_Benewake_TFMiniPlus::process_raw_measure(le16_t distance_raw, le16_t strength_raw,
-                                                             uint16_t &output_distance_cm)
+bool AP_RangeFinder_Benewake_TFMiniPlus::process_raw_measure(le16_t distance_raw, le16_t strength_raw, le16_t temperature_raw,
+                                                             uint16_t &output_distance_cm, uint16_t &output_temperature)
 {
     uint16_t strength = le16toh(strength_raw);
 
     output_distance_cm = le16toh(distance_raw);
+    output_temperature = (uint16_t)((float)le16toh(temperature_raw) / 8.0f - 256.0f);
 
     if (strength < 100 || strength == 0xFFFF) {
         return false;
     }
 
-    output_distance_cm = constrain_int16(output_distance_cm, 10, 1200);
+    output_distance_cm = constrain_int16(output_distance_cm, 5, 1600);
 
     return true;
 }
@@ -179,17 +182,27 @@ bool AP_RangeFinder_Benewake_TFMiniPlus::check_checksum(uint8_t *arr, int pkt_le
 
 void AP_RangeFinder_Benewake_TFMiniPlus::timer()
 {
-    uint8_t CMD_READ_MEASUREMENT[] = { 0x5A, 0x05, 0x00, 0x07, 0x66 };
+    if (distance_equals_count > 60) {
+        distance_equals_count = 0;
+
+        if (state.pin == 1) {
+            const uint8_t CMD_SYSTEM_RESET[] = { 0x5A, 0x04, 0x04, 0x62 };
+            _dev->transfer(CMD_SYSTEM_RESET, sizeof(CMD_SYSTEM_RESET), nullptr, 0);            
+            return;
+        }        
+    }
+
+    uint8_t CMD_READ_MEASUREMENT[] = { 0x5A, 0x05, 0x00, 0x01, 0x60 };
     union {
         struct PACKED {
             uint8_t header1;
             uint8_t header2;
             le16_t distance;
             le16_t strength;
-            le32_t timestamp;
+            le16_t temperature;
             uint8_t checksum;
         } val;
-        uint8_t arr[11];
+        uint8_t arr[9];
     } u;
     bool ret;
     uint16_t distance;
@@ -202,9 +215,14 @@ void AP_RangeFinder_Benewake_TFMiniPlus::timer()
     if (u.val.header1 != 0x59 || u.val.header2 != 0x59 || !check_checksum(u.arr, sizeof(u)))
         return;
 
-    if (process_raw_measure(u.val.distance, u.val.strength, distance)) {
-        WITH_SEMAPHORE(_sem);
-        accum.sum += distance;
-        accum.count++;
+    if (process_raw_measure(u.val.distance, u.val.strength, u.val.temperature, distance, temperature)) {
+        if (_sem->take(HAL_SEMAPHORE_BLOCK_FOREVER)) {
+            accum.sum += distance;
+            accum.count++;
+            _sem->give();
+        }
+
+        distance_equals_count = last_distance == distance ? distance_equals_count+1 : 0;
+        last_distance = distance;
     }
 }

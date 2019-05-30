@@ -28,7 +28,6 @@ class AP_RangeFinder_Benewake_TFMiniPlus : public AP_RangeFinder_Backend
 public:
     // static detection function
     static AP_RangeFinder_Backend *detect(RangeFinder::RangeFinder_State &_state,
-                                          AP_RangeFinder_Params &_params,
                                           AP_HAL::OwnPtr<AP_HAL::I2CDevice> dev);
 
     // update state
@@ -42,14 +41,13 @@ protected:
 
 private:
     AP_RangeFinder_Benewake_TFMiniPlus(RangeFinder::RangeFinder_State &_state,
-                                       AP_RangeFinder_Params &_params,
                                        AP_HAL::OwnPtr<AP_HAL::I2CDevice> dev);
 
     bool init();
     void timer();
 
-    bool process_raw_measure(le16_t distance_raw, le16_t strength_raw,
-                             uint16_t &output_distance_cm);
+    bool process_raw_measure(le16_t distance_raw, le16_t strength_raw, le16_t temperature_raw,
+                             uint16_t &output_distance_cm, uint16_t &output_temperature);
 
     bool check_checksum(uint8_t *arr, int pkt_len);
 
@@ -59,4 +57,10 @@ private:
         uint32_t sum;
         uint32_t count;
     } accum;
+
+    uint16_t temperature;
+    
+    uint32_t last_reading_ms;
+    uint16_t last_distance;
+    uint16_t distance_equals_count;
 };

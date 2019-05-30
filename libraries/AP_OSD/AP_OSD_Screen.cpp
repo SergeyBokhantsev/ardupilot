@@ -30,6 +30,7 @@
 #include <AP_Notify/AP_Notify.h>
 #include <AP_Stats/AP_Stats.h>
 #include <AP_Baro/AP_Baro.h>
+#include <AP_RangeFinder/AP_RangeFinder.h>
 
 #include <ctype.h>
 #include <GCS_MAVLink/GCS.h>
@@ -219,6 +220,7 @@ const AP_Param::GroupInfo AP_OSD_Screen::var_info[] = {
     AP_SUBGROUPINFO(estimation, "ESTIMAT", 44, AP_OSD_Screen, AP_OSD_Setting),
     AP_SUBGROUPINFO(tilt, "TILT", 45, AP_OSD_Screen, AP_OSD_Setting),
     AP_SUBGROUPINFO(board_vcc, "BRD_VCC", 46, AP_OSD_Screen, AP_OSD_Setting),
+    AP_SUBGROUPINFO(rangefnd, "RANGEFND", 47, AP_OSD_Screen, AP_OSD_Setting),
     
     AP_GROUPEND
 };
@@ -506,6 +508,24 @@ void AP_OSD_Screen::draw_tilt(uint8_t x, uint8_t y)
     int32_t interval = 36000 / SYM_ARROW_COUNT;
     arrow = SYM_ARROW_START + ((angle + interval / 2) / interval) % SYM_ARROW_COUNT;
     backend->write(x, y, false, "%c%2d%c", arrow, (uint8_t)(tilt.length() / 100.0f), SYM_DEGR);
+}
+
+void AP_OSD_Screen::draw_rangefnd(uint8_t x, uint8_t y)
+{
+    RangeFinder* rf = RangeFinder::get_singleton();
+    
+    if (rf->has_orientation(ROTATION_PITCH_270)) {      
+        RangeFinder::RangeFinder_Status status = rf->status_orient(ROTATION_PITCH_270);
+        if (status == RangeFinder::RangeFinder_Good) {
+            float distance = rf->distance_cm_orient(ROTATION_PITCH_270) * 0.01f;
+            uint16_t temperature = rf->voltage_mv_orient(ROTATION_PITCH_270);
+            backend->write(x, y, false, "L %2.1f%c %3d%c", distance, SYM_M, temperature, SYM_DEGREES_C);
+        } else if (status == RangeFinder::RangeFinder_NotConnected) {
+            backend->write(x, y, true, "L NC");
+        } else if (status == RangeFinder::RangeFinder_NoData) {
+            backend->write(x, y, true, "L ND");
+        }        
+    }
 }
 
 void AP_OSD_Screen::draw_estimation(uint8_t x, uint8_t y)
@@ -1249,6 +1269,7 @@ void AP_OSD_Screen::draw(void)
     DRAW_SETTING(estimation);
     DRAW_SETTING(tilt);
     DRAW_SETTING(board_vcc);
+    DRAW_SETTING(rangefnd);
     
 #ifdef HAVE_AP_BLHELI_SUPPORT
     DRAW_SETTING(blh_temp);
