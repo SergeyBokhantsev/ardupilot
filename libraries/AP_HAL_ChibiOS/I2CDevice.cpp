@@ -287,7 +287,7 @@ bool I2CDevice::_transfer(const uint8_t *send, uint32_t send_len,
         if (ret != MSG_OK) {
             //restart the bus
             osalDbgAssert(I2CD[bus.busnum].i2c->state == I2C_READY || I2CD[bus.busnum].i2c->state == I2C_LOCKED, "i2cStart state");
-            i2cStop(I2CD[bus.busnum].i2c);
+            i2cSoftStop(I2CD[bus.busnum].i2c);
             osalDbgAssert(I2CD[bus.busnum].i2c->state == I2C_STOP, "i2cStart state");
             i2cStart(I2CD[bus.busnum].i2c, &bus.i2ccfg);
             osalDbgAssert(I2CD[bus.busnum].i2c->state == I2C_READY, "i2cStart state");
