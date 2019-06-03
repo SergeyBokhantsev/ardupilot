@@ -161,7 +161,10 @@ bool AP_SmartAudio::set_power(int8_t value)
     DataFlash_Class::instance()->Log_Write_SMAUD_VTX((uint8_t)value, _power_zone, _power_mode);
     
     uint8_t CMD_SET_POWER[] = { 0x05, 0x01, 0x00 };
-    CMD_SET_POWER[2] = (uint8_t)value;
+
+    uint8_t dbm[] = { 13, 23, 27, 30 };
+
+    CMD_SET_POWER[2] = dbm[value];
     
     send_v2_command(CMD_SET_POWER, sizeof(CMD_SET_POWER));
     
