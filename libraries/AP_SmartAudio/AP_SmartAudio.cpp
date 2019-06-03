@@ -270,6 +270,9 @@ void AP_SmartAudio::send_v2_command(uint8_t* data, uint8_t len)
 		}
         
         _port->write(crc);
+        
+        // TBS Unify Pro HV SE cant work without this
+        _port->write((uint8_t)SMARTAUDIO_V2_COMMAND_LOW);
 	}
 }
 
