@@ -162,7 +162,7 @@ bool AP_SmartAudio::set_power(int8_t value)
     
     uint8_t CMD_SET_POWER[] = { 0x05, 0x01, 0x00 };
 
-    uint8_t dbm[] = { 13, 13, 27, 30 };
+    uint8_t dbm[] = { 14, 20, 26, 30 };
 
     CMD_SET_POWER[2] = dbm[value];
     CMD_SET_POWER[2] |= 128;
