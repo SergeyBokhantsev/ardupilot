@@ -544,6 +544,10 @@ public:
     AP_SmartRTL smart_rtl;
 #endif
 
+#if SMARTAUDIO_ENABLED == ENABLED
+    AP_SmartAudio smart_audio;
+#endif
+
     // wheel encoder and winch
 #if WINCH_ENABLED == ENABLED
     AP_WheelEncoder wheel_encoder;

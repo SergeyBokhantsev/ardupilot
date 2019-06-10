@@ -157,6 +157,11 @@ const AP_Param::GroupInfo AP_OSD::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("_FS_SCR", 19, AP_OSD, failsafe_scr, 0),
 
+    //SB Custom
+    AP_GROUPINFO("_W_AMPS", 20, AP_OSD, warn_amps, 15),
+    AP_GROUPINFO("_BAT_WH", 21, AP_OSD, bat_wh, 0), 
+    AP_GROUPINFO("_STA_PWR", 22, AP_OSD, power_static, 0), 
+    
     AP_GROUPEND
 };
 

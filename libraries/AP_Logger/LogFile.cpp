@@ -1694,3 +1694,16 @@ void AP_Logger::Write_SRTL(bool active, uint16_t num_points, uint16_t max_points
     };
     WriteBlock(&pkt_srtl, sizeof(pkt_srtl));
 }
+
+void AP_Logger::Write_SMAUD_VTX(uint8_t power, int8_t zone, uint8_t mode)
+{    
+    struct log_SMAUD_VTX_PWR pkt = {
+        LOG_PACKET_HEADER_INIT(LOG_SMAUD_VTX_PWR_MSG),
+        time_us         : AP_HAL::micros64(),
+        power           : power,
+        zone            : zone,
+        mode            : mode
+    };
+    
+    WriteBlock(&pkt, sizeof(pkt));
+}
