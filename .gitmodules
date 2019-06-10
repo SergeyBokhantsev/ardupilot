@@ -22,4 +22,4 @@
 [submodule "modules/ChibiOS"]
 	path = modules/ChibiOS
 	url = git://github.com/SergeyBokhantsev/ChibiOS.git
-	branch = 3.6-sb
+	branch = master
