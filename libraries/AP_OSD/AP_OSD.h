@@ -205,6 +205,7 @@ private:
     AP_OSD_Setting estimation{true, 5, 5};
     AP_OSD_Setting tilt{true, 5, 5};
     AP_OSD_Setting board_vcc{true, 5, 5};
+    AP_OSD_Setting rangefnd{true, 5, 5};
 // *SB    
     
 #ifdef HAVE_AP_BLHELI_SUPPORT
@@ -271,6 +272,7 @@ private:
     void draw_estimation(uint8_t x, uint8_t y);
     void draw_tilt(uint8_t x, uint8_t y);
     void draw_board_vcc(uint8_t x, uint8_t y);
+    void draw_rangefnd(uint8_t x, uint8_t y);
 // *SB
     
     //helper functions
