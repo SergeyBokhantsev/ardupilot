@@ -748,18 +748,33 @@ void AP_OSD_Screen::draw_vspeed(uint8_t x, uint8_t y)
         WITH_SEMAPHORE(baro.get_semaphore());
         vspd = baro.get_climb_rate();
     }
+    
     char sym;
-    if (vspd > 3.0f) {
-        sym = SYM_UP_UP;
-    } else if (vspd >=0.0f) {
-        sym = SYM_UP;
-    } else if (vspd >= -3.0f) {
-        sym = SYM_DOWN;
-    } else {
-        sym = SYM_DOWN_DOWN;
-    }
-    vspd = fabsf(vspd);
-    backend->write(x, y, false, "%c%2d%c", sym, (int)u_scale(VSPEED, vspd), u_icon(VSPEED));
+    if (vspd < -4.8f)
+        sym = 103; 
+    else if (vspd < -3.6f)
+        sym = 104; 
+    else if (vspd < -2.4f)
+        sym = 105; 
+    else if (vspd < -1.2f)
+        sym = 106; 
+    else if (vspd < -0.5f)
+        sym = 107; 
+    else if (vspd <= 0.5f)
+        sym = 108;
+    else if (vspd < 1.2f)
+        sym = 109;
+    else if (vspd < 2.4f)
+        sym = 110;
+    else if (vspd < 3.6f)
+        sym = 111;
+    else if (vspd < 4.8f)
+        sym = 96;
+    else
+        sym = 97;
+    
+    vspd = fabsf(vspd);    
+    backend->write(x, y, vspd > 3.0f, "%c%2.1f%c", sym, u_scale(VSPEED, vspd), u_icon(VSPEED));
 }
 
 #ifdef HAVE_AP_BLHELI_SUPPORT
