@@ -142,6 +142,7 @@ void AP_RangeFinder_Benewake_TFMiniPlus::update()
 
     if (accum.count > 0) {
         state.distance_cm = accum.sum / accum.count;
+        state.voltage_mv = temperature;
         state.last_reading_ms = AP_HAL::millis();
         accum.sum = 0;
         accum.count = 0;
@@ -151,12 +152,13 @@ void AP_RangeFinder_Benewake_TFMiniPlus::update()
     }
 }
 
-bool AP_RangeFinder_Benewake_TFMiniPlus::process_raw_measure(le16_t distance_raw, le16_t strength_raw,
-                                                             uint16_t &output_distance_cm)
+bool AP_RangeFinder_Benewake_TFMiniPlus::process_raw_measure(le16_t distance_raw, le16_t strength_raw, le16_t temperature_raw,
+                                                             uint16_t &output_distance_cm, uint16_t &output_temperature)
 {
     uint16_t strength = le16toh(strength_raw);
 
     output_distance_cm = le16toh(distance_raw);
+    output_temperature = (uint16_t)((float)le16toh(temperature_raw) / 8.0f - 256.0f);
 
     if (strength < 100 || strength == 0xFFFF) {
         return false;
@@ -204,7 +206,7 @@ void AP_RangeFinder_Benewake_TFMiniPlus::timer()
     if (u.val.header1 != 0x59 || u.val.header2 != 0x59 || !check_checksum(u.arr, sizeof(u)))
         return;
 
-    if (process_raw_measure(u.val.distance, u.val.strength, distance)) {
+    if (process_raw_measure(u.val.distance, u.val.strength, u.val.temperature, distance, temperature)) {
         WITH_SEMAPHORE(_sem);
         accum.sum += distance;
         accum.count++;

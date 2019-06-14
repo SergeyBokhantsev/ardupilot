@@ -48,8 +48,8 @@ private:
     bool init();
     void timer();
 
-    bool process_raw_measure(le16_t distance_raw, le16_t strength_raw,
-                             uint16_t &output_distance_cm);
+    bool process_raw_measure(le16_t distance_raw, le16_t strength_raw, le16_t temperature_raw,
+                             uint16_t &output_distance_cm, uint16_t &output_temperature);
 
     bool check_checksum(uint8_t *arr, int pkt_len);
 
@@ -57,6 +57,8 @@ private:
 
     struct {
         uint32_t sum;
-        uint32_t count;
+        uint32_t count;        
     } accum;
+
+    uint16_t temperature;
 };

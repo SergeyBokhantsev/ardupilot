@@ -1191,11 +1191,12 @@ void AP_OSD_Screen::draw_rangefnd(uint8_t x, uint8_t y)
 {
     RangeFinder* rf = RangeFinder::get_singleton();
     
-    if (rf->has_orientation(ROTATION_PITCH_270)) {      
-        RangeFinder::RangeFinder_Status status = rf->status_orient(ROTATION_PITCH_270);
+    if (rf->has_orientation(ROTATION_PITCH_270)) {
+        RangeFinder::RangeFinder_Status status = rf->status_orient(ROTATION_PITCH_270);        
         if (status == RangeFinder::RangeFinder_Good) {
             float distance = rf->distance_cm_orient(ROTATION_PITCH_270) * 0.01f;
-            backend->write(x, y, false, "L %2.1f%c", distance, SYM_M);
+            uint16_t voltage = rf->voltage_mv_orient(ROTATION_PITCH_270);
+            backend->write(x, y, false, "L %2.1f%c %3d", distance, SYM_M, voltage);
         } else if (status == RangeFinder::RangeFinder_NotConnected) {
             backend->write(x, y, true, "L NC");
         } else if (status == RangeFinder::RangeFinder_NoData) {
