@@ -118,13 +118,15 @@ bool AP_RangeFinder_Benewake_TFMiniPlus::init()
         hal.scheduler->delay(100);
     }
 
-    _dev->transfer(CMD_SYSTEM_RESET, sizeof(CMD_SYSTEM_RESET), nullptr, 0);
-
-    _dev->get_semaphore()->give();
+    if (!_dev->transfer(CMD_SYSTEM_RESET, sizeof(CMD_SYSTEM_RESET), nullptr, 0)) {
+        goto fail;
+    }
 
     hal.scheduler->delay(100);
 
-    _dev->register_periodic_callback(10000,
+    _dev->get_semaphore()->give();
+
+    _dev->register_periodic_callback(50000,
                                      FUNCTOR_BIND_MEMBER(&AP_RangeFinder_Benewake_TFMiniPlus::timer, void));
 
     return true;
@@ -179,17 +181,17 @@ bool AP_RangeFinder_Benewake_TFMiniPlus::check_checksum(uint8_t *arr, int pkt_le
 
 void AP_RangeFinder_Benewake_TFMiniPlus::timer()
 {
-    uint8_t CMD_READ_MEASUREMENT[] = { 0x5A, 0x05, 0x00, 0x07, 0x66 };
+    uint8_t CMD_READ_MEASUREMENT[] = { 0x5A, 0x05, 0x00, 0x01, 0x60 };
     union {
         struct PACKED {
             uint8_t header1;
             uint8_t header2;
             le16_t distance;
             le16_t strength;
-            le32_t timestamp;
+            le16_t temperature;
             uint8_t checksum;
         } val;
-        uint8_t arr[11];
+        uint8_t arr[9];
     } u;
     bool ret;
     uint16_t distance;
