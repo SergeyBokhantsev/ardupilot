@@ -955,6 +955,12 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("FS_OPTIONS", 36, ParametersG2, fs_options, 0),
 
+#if SMARTAUDIO_ENABLED == ENABLED
+    // @Group: SMAUD_
+    // @Path: ../libraries/AP_SmartAudio/AP_SmartAudio.cpp
+    AP_SUBGROUPINFO(smartaudio, "SMAUD_",  37, ParametersG2, AP_SmartAudio),
+#endif
+
     AP_GROUPEND
 };
 
@@ -1040,6 +1046,10 @@ ParametersG2::ParametersG2(void)
 #endif
 #if MODE_SYSTEMID_ENABLED == ENABLED
     ,mode_systemid_ptr(&copter.mode_systemid)
+#endif
+
+#if SMARTAUDIO_ENABLED == ENABLED
+    ,smartaudio()
 #endif
 {
     AP_Param::setup_object_defaults(this, var_info);
@@ -1476,7 +1486,7 @@ void Copter::convert_tradheli_parameters(void)
                 if (!ap2->configured_in_storage()) {
                     // the new parameter is not in storage so set generic swash
                     AP_Param::set_and_save_by_name("H_SW_TYPE", SwashPlateType::SWASHPLATE_TYPE_H3);            
-                }
+    }
             }
         }
         //SWASH 2
@@ -1526,7 +1536,7 @@ void Copter::convert_tradheli_parameters(void)
     table_size = ARRAY_SIZE(rscheli_conversion_info);
     for (uint8_t i=0; i<table_size; i++) {
         AP_Param::convert_old_parameter(&rscheli_conversion_info[i], 1.0f);
-    }
+}
 
     // update tail speed parameter with scaling
     AP_Int16 *tailspeed;
