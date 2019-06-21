@@ -102,7 +102,7 @@ void AP_SmartAudio::update()
             break;
 
         default:
-            power = power_value[pover_mode];
+            power = power_value[power_mode];
             break;
     }
     if (power >= 0) {
