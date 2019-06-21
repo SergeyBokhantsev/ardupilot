@@ -19,8 +19,8 @@ void AP_SmartAudioDevice::update()
 
         case State_READING_RESPONSE:
             if (read_response()) {
-                state = State_READY
-            };
+                state = State_READY;
+            }
             break;
     }
 }
