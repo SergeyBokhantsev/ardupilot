@@ -63,6 +63,8 @@ void Copter::read_rangefinder(void)
     rangefinder_state.alt_healthy = false;
     rangefinder_state.alt_cm = 0;
 #endif
+
+    AP_Notify::flags.rf_terr_foll = rangefinder_state.enabled;
 }
 
 // return true if rangefinder_alt can be used

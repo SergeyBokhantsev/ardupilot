@@ -514,12 +514,19 @@ void AP_OSD_Screen::draw_rangefnd(uint8_t x, uint8_t y)
 {
     RangeFinder* rf = RangeFinder::get_singleton();
     
+    if (AP_Notify::flags.rf_terr_foll)
+    {
+        // Terrain follow enabled
+        backend->write(x, y, true, "%c", 0xAF);
+        x += 2;
+    }
+    
     if (rf->has_orientation(ROTATION_PITCH_270)) {      
         RangeFinder::RangeFinder_Status status = rf->status_orient(ROTATION_PITCH_270);
         if (status == RangeFinder::RangeFinder_Good) {
             float distance = rf->distance_cm_orient(ROTATION_PITCH_270) * 0.01f;
-            uint16_t temperature = rf->voltage_mv_orient(ROTATION_PITCH_270);
-            backend->write(x, y, false, "L %2.1f%c %3d%c", distance, SYM_M, temperature, SYM_DEGREES_C);
+            //uint16_t temperature = rf->voltage_mv_orient(ROTATION_PITCH_270);
+            backend->write(x, y, false, "%2.1f%c", distance, SYM_M);
         } else if (status == RangeFinder::RangeFinder_NotConnected) {
             backend->write(x, y, true, "L NC");
         } else if (status == RangeFinder::RangeFinder_NoData) {

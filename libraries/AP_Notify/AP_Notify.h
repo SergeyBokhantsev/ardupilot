@@ -100,6 +100,7 @@ public:
         bool video_recording;     // true when the vehicle is recording video
         uint8_t vtx_channel;      // VTX channel number
         uint8_t vtx_power;        // VTX power
+        bool rf_terr_foll;        // Rangefinder terrain following enabled
     };
 
     /// notify_events_type - bitmask of active events.
