@@ -25,6 +25,7 @@
 #include <Filter/LowPassFilter2p.h>
 #include <Filter/LowPassFilter.h>
 #include <Filter/NotchFilter.h>
+#include <Filter/HarmonicNotchFilter.h>
 
 class AP_InertialSensor_Backend;
 class AuxiliaryBus;
@@ -202,6 +203,9 @@ public:
     uint8_t get_primary_accel(void) const { return _primary_accel; }
     uint8_t get_primary_gyro(void) const { return _primary_gyro; }
 
+    // Update the harmonic notch frequency
+    void update_harmonic_notch_freq_hz(float scaled_freq);
+
     // enable HIL mode
     void set_hil_mode(void) { _hil_mode = true; }
 
@@ -210,6 +214,15 @@ public:
 
     // get the accel filter rate in Hz
     uint16_t get_accel_filter_hz(void) const { return _accel_filter_cutoff; }
+
+    // harmonic notch current center frequency
+    float get_gyro_dynamic_notch_center_freq_hz(void) const { return _calculated_harmonic_notch_freq_hz; }
+
+    // harmonic notch reference center frequency
+    float get_gyro_harmonic_notch_center_freq_hz(void) const { return _harmonic_notch_filter.center_freq_hz(); }
+
+    // harmonic notch reference scale factor
+    float get_gyro_harmonic_notch_reference(void) const { return _harmonic_notch_filter.reference(); }
 
     // indicate which bit in LOG_BITMASK indicates raw logging enabled
     void set_log_raw_bit(uint32_t log_raw_bit) { _log_raw_bit = log_raw_bit; }
@@ -273,6 +286,9 @@ public:
 
     // return time in microseconds of last update() call
     uint32_t get_last_update_usec(void) const { return _last_update_usec; }
+
+    // for killing an IMU for testing purposes
+    void kill_imu(uint8_t imu_idx, bool kill_it);
 
     enum IMU_SENSOR_TYPE {
         IMU_SENSOR_TYPE_ACCEL = 0,
@@ -408,6 +424,12 @@ private:
     NotchFilterParams _notch_filter;
     NotchFilterVector3f _gyro_notch_filter[INS_MAX_INSTANCES];
 
+    // optional harmonic notch filter on gyro
+    HarmonicNotchFilterParams _harmonic_notch_filter;
+    HarmonicNotchFilterVector3f _gyro_harmonic_notch_filter[INS_MAX_INSTANCES];
+    // the current center frequency for the notch
+    float _calculated_harmonic_notch_freq_hz;
+
     // Most recent gyro reading
     Vector3f _gyro[INS_MAX_INSTANCES];
     Vector3f _delta_angle[INS_MAX_INSTANCES];
@@ -495,6 +517,11 @@ private:
     uint8_t _primary_gyro;
     uint8_t _primary_accel;
 
+    // mask of accels and gyros which we will be actively using
+    // and this should wait for in wait_for_sample()
+    uint8_t _gyro_wait_mask;
+    uint8_t _accel_wait_mask;
+
     // bitmask bit which indicates if we should log raw accel and gyro data
     uint32_t _log_raw_bit;
 
@@ -579,6 +606,8 @@ private:
     uint32_t _gyro_startup_error_count[INS_MAX_INSTANCES];
     bool _startup_error_counts_set;
     uint32_t _startup_ms;
+
+    uint8_t imu_kill_mask;
 };
 
 namespace AP {

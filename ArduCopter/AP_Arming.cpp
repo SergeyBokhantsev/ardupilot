@@ -55,7 +55,8 @@ bool AP_Arming_Copter::run_pre_arm_checks(bool display_failure)
     return fence_checks(display_failure)
         & parameter_checks(display_failure)
         & motor_checks(display_failure)
-        & pilot_throttle_checks(display_failure) &
+        & pilot_throttle_checks(display_failure)
+        & oa_checks(display_failure) &
         AP_Arming::pre_arm_checks(display_failure);
 }
 
@@ -172,6 +173,13 @@ bool AP_Arming_Copter::parameter_checks(bool display_failure)
 #endif
 
         #if FRAME_CONFIG == HELI_FRAME
+        if (copter.g2.frame_class.get() != AP_Motors::MOTOR_FRAME_HELI_QUAD &&
+            copter.g2.frame_class.get() != AP_Motors::MOTOR_FRAME_HELI_DUAL &&
+            copter.g2.frame_class.get() != AP_Motors::MOTOR_FRAME_HELI) {
+            check_failed(ARMING_CHECK_PARAMETERS, display_failure, "Invalid Heli FRAME_CLASS");
+            return false;
+        }
+
         // check helicopter parameters
         if (!copter.motors->parameter_check(display_failure)) {
             check_failed(ARMING_CHECK_PARAMETERS, display_failure, "Heli motors checks failed");
@@ -189,6 +197,13 @@ bool AP_Arming_Copter::parameter_checks(bool display_failure)
             return false;
         }
 
+        #else
+        if (copter.g2.frame_class.get() == AP_Motors::MOTOR_FRAME_HELI_QUAD ||
+            copter.g2.frame_class.get() == AP_Motors::MOTOR_FRAME_HELI_DUAL ||
+            copter.g2.frame_class.get() == AP_Motors::MOTOR_FRAME_HELI) {
+            check_failed(ARMING_CHECK_PARAMETERS, display_failure, "Invalid MultiCopter FRAME_CLASS");
+            return false;
+        }
         #endif // HELI_FRAME
 
         // check for missing terrain data
@@ -227,6 +242,28 @@ bool AP_Arming_Copter::motor_checks(bool display_failure)
         check_failed(ARMING_CHECK_NONE, display_failure, "check firmware or FRAME_CLASS");
         return false;
     }
+
+    // if this is a multicopter using ToshibaCAN ESCs ensure MOT_PMW_MIN = 1000, MOT_PWM_MAX = 2000
+#if HAL_WITH_UAVCAN && (FRAME_CONFIG != HELI_FRAME)
+    bool tcan_active = false;
+    const uint8_t num_drivers = AP::can().get_num_drivers();
+    for (uint8_t i = 0; i < num_drivers; i++) {
+        if (AP::can().get_protocol_type(i) == AP_BoardConfig_CAN::Protocol_Type_ToshibaCAN) {
+            tcan_active = true;
+        }
+    }
+    if (tcan_active) {
+        if (copter.motors->get_pwm_output_min() != 1000) {
+            check_failed(ARMING_CHECK_NONE, display_failure, "TCAN ESCs require MOT_PWM_MIN=1000");
+            return false;
+        }
+        if (copter.motors->get_pwm_output_max() != 2000) {
+            check_failed(ARMING_CHECK_NONE, display_failure, "TCAN ESCs require MOT_PWM_MAX=2000");
+            return false;
+        }
+    }
+#endif
+
     return true;
 }
 
@@ -241,12 +278,31 @@ bool AP_Arming_Copter::pilot_throttle_checks(bool display_failure)
             #else
             const char *failmsg = "Throttle below Failsafe";
             #endif
-            check_failed(ARMING_CHECK_RC, display_failure, failmsg);
+            check_failed(ARMING_CHECK_RC, display_failure, "%s", failmsg);
             return false;
         }
     }
 
     return true;
+}
+
+bool AP_Arming_Copter::oa_checks(bool display_failure)
+{
+#if AC_OAPATHPLANNER_ENABLED == ENABLED
+    char failure_msg[50];
+    if (copter.g2.oa.pre_arm_check(failure_msg, ARRAY_SIZE(failure_msg))) {
+        return true;
+    }
+    // display failure
+    if (strlen(failure_msg) == 0) {
+        check_failed(ARMING_CHECK_NONE, display_failure, "%s", "Check Object Avoidance");
+    } else {
+        check_failed(ARMING_CHECK_NONE, display_failure, "%s", failure_msg);
+    }
+    return false;
+#else
+    return true;
+#endif
 }
 
 bool AP_Arming_Copter::rc_calibration_checks(bool display_failure)
@@ -442,15 +498,18 @@ bool AP_Arming_Copter::arm_checks(AP_Arming::Method method)
     }
 
 #ifndef ALLOW_ARM_NO_COMPASS
-    const Compass &_compass = AP::compass();
-    // check compass health
-    if (!_compass.healthy()) {
-        check_failed(ARMING_CHECK_NONE, true, "Compass not healthy");
-        return false;
+    // if external source of heading is available, we can skip compass health check
+    if (!ahrs.is_ext_nav_used_for_yaw()) {
+        const Compass &_compass = AP::compass();
+        // check compass health
+        if (!_compass.healthy()) {
+            check_failed(ARMING_CHECK_NONE, true, "Compass not healthy");
+            return false;
+        }
     }
 #endif
 
-    control_mode_t control_mode = copter.control_mode;
+    Mode::Number control_mode = copter.control_mode;
 
     // always check if the current mode allows arming
     if (!copter.flightmode->allows_arming(method == AP_Arming::Method::MAVLINK)) {
@@ -517,7 +576,7 @@ bool AP_Arming_Copter::arm_checks(AP_Arming::Method method)
         }
 
         // check throttle is not too high - skips checks if arming from GCS in Guided
-        if (!(method == AP_Arming::Method::MAVLINK && (control_mode == GUIDED || control_mode == GUIDED_NOGPS))) {
+        if (!(method == AP_Arming::Method::MAVLINK && (control_mode == Mode::Number::GUIDED || control_mode == Mode::Number::GUIDED_NOGPS))) {
             // above top of deadband is too always high
             if (copter.get_pilot_desired_climb_rate(copter.channel_throttle->get_control_in()) > 0.0f) {
                 check_failed(ARMING_CHECK_RC, true, "%s too high", rc_item);
@@ -525,7 +584,7 @@ bool AP_Arming_Copter::arm_checks(AP_Arming::Method method)
             }
             // in manual modes throttle must be at zero
             #if FRAME_CONFIG != HELI_FRAME
-            if ((copter.flightmode->has_manual_throttle() || control_mode == DRIFT) && copter.channel_throttle->get_control_in() > 0) {
+            if ((copter.flightmode->has_manual_throttle() || control_mode == Mode::Number::DRIFT) && copter.channel_throttle->get_control_in() > 0) {
                 check_failed(ARMING_CHECK_RC, true, "%s too high", rc_item);
                 return false;
             }
@@ -639,7 +698,7 @@ bool AP_Arming_Copter::arm(const AP_Arming::Method method, const bool do_arming_
     AP::logger().Write_Event(DATA_ARMED);
 
     // log flight mode in case it was changed while vehicle was disarmed
-    AP::logger().Write_Mode(copter.control_mode, copter.control_mode_reason);
+    AP::logger().Write_Mode((uint8_t)copter.control_mode, copter.control_mode_reason);
 
     // re-enable failsafe
     copter.failsafe_enable();

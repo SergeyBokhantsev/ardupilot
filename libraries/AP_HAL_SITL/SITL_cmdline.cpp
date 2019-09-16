@@ -27,96 +27,25 @@
 #include <SITL/SIM_Calibration.h>
 #include <SITL/SIM_XPlane.h>
 #include <SITL/SIM_Submarine.h>
+#include <SITL/SIM_SilentWings.h>
 #include <SITL/SIM_Morse.h>
+#include <SITL/SIM_AirSim.h>
+#include <SITL/SIM_Scrimmage.h>
+#include <SITL/SIM_Webots.h>
 
 #include <signal.h>
 #include <stdio.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
 
 extern const AP_HAL::HAL& hal;
 
 using namespace HALSITL;
 using namespace SITL;
 
-// partly flogged from: https://github.com/tridge/junkcode/blob/master/segv_handler/segv_handler.c
-static void dump_stack_trace()
-{
-    // find dumpstack command:
-    const char *dumpstack = "dumpstack"; // if we can't find it trust in PATH
-    struct stat statbuf;
-    const char *paths[] {
-        "Tools/scripts/dumpstack",
-        "APM/Tools/scripts/dumpstack", // for autotest server
-    };
-    for (uint8_t i=0; i<ARRAY_SIZE(paths); i++) {
-        if (::stat(paths[i], &statbuf) != -1) {
-            dumpstack = paths[i];
-            break;
-        }
-    }
-
-    char cmd[100];
-	char progname[100];
-	char *p;
-	int n;
-
-	n = readlink("/proc/self/exe", progname, sizeof(progname));
-	progname[n] = 0;
-
-	p = strrchr(progname, '/');
-	*p = 0;
-
-    char output_filepath[30];
-    snprintf(output_filepath,
-             ARRAY_SIZE(output_filepath),
-             "segv_%s.%d.out",
-             p+1,
-             (int)getpid());
-	snprintf(cmd,
-             sizeof(cmd),
-             "sh %s %d >%s 2>&1",
-             dumpstack,
-             (int)getpid(),
-             output_filepath);
-    fprintf(stderr, "Running: %s\n", cmd);
-
-	if (system(cmd)) {
-        fprintf(stderr, "Failed\n");
-        return;
-    }
-    fprintf(stderr, "Stack dumped\n");
-
-    // print the trace on stderr:
-    int fd = open(output_filepath, O_RDONLY);
-    if (fd == -1) {
-        fprintf(stderr, "Failed to open stack dump filepath: %m");
-        return;
-    }
-    char buf[1024]; // let's hope we're not here because we ran out of stack
-    while (true) {
-        const ssize_t ret = read(fd, buf, ARRAY_SIZE(buf));
-        if (ret == -1) {
-            fprintf(stderr, "Read error: %m");
-            break;
-        }
-        if (ret == 0) {
-            break;
-        }
-        if (write(2, buf, ret) != ret) {
-            // *sigh*
-            break;
-        }
-    }
-    close(fd);
-}
-
 // catch floating point exceptions
 static void _sig_fpe(int signum)
 {
     fprintf(stderr, "ERROR: Floating point exception - aborting\n");
-    dump_stack_trace();
+    AP_HAL::dump_stack_trace();
     abort();
 }
 
@@ -124,7 +53,7 @@ static void _sig_fpe(int signum)
 static void _sig_segv(int signum)
 {
     fprintf(stderr, "ERROR: segmentation fault - aborting\n");
-    dump_stack_trace();
+    AP_HAL::dump_stack_trace();
     abort();
 }
 
@@ -140,8 +69,9 @@ void SITL_State::_usage(void)
            "\t--instance|-I N          set instance of SITL (adds 10*instance to all port numbers)\n"
            // "\t--param|-P NAME=VALUE    set some param\n"  CURRENTLY BROKEN!
            "\t--synthetic-clock|-S     set synthetic clock mode\n"
-           "\t--home|-O HOME           set home location (lat,lng,alt,yaw)\n"
+           "\t--home|-O HOME           set start location (lat,lng,alt,yaw)\n"
            "\t--model|-M MODEL         set simulation model\n"
+           "\t--config string          set additional simulation config string\n"
            "\t--fg|-F ADDRESS          set Flight Gear view address, defaults to 127.0.0.1\n"
            "\t--disable-fgview         disable Flight Gear view\n"
            "\t--gimbal                 enable simulated MAVLink gimbal\n"
@@ -154,6 +84,7 @@ void SITL_State::_usage(void)
            "\t--uartE device           set device string for UARTE\n"
            "\t--uartF device           set device string for UARTF\n"
            "\t--uartG device           set device string for UARTG\n"
+           "\t--uartH device           set device string for UARTH\n"
            "\t--rtscts                 enable rtscts on serial ports (default false)\n"
            "\t--base-port PORT         set port num for base port(default 5670) must be before -I option\n"
            "\t--rc-in-port PORT        set port num for rc in\n"
@@ -166,7 +97,7 @@ void SITL_State::_usage(void)
 
 static const struct {
     const char *name;
-    Aircraft *(*constructor)(const char *home_str, const char *frame_str);
+    Aircraft *(*constructor)(const char *frame_str);
 } model_constructors[] = {
     { "quadplane",          QuadPlane::create },
     { "xplane",             XPlane::create },
@@ -201,7 +132,12 @@ static const struct {
     { "plane",              Plane::create },
     { "calibration",        Calibration::create },
     { "vectored",           Submarine::create },
+    { "silentwings",        SilentWings::create },
     { "morse",              Morse::create },
+    { "airsim",             AirSim::create},
+    { "scrimmage",          Scrimmage::create },
+    { "webots",             Webots::create },
+
 };
 
 void SITL_State::_set_signal_handlers(void) const
@@ -230,11 +166,12 @@ void SITL_State::_parse_command_line(int argc, char * const argv[])
     _instance = 0;
     _synthetic_clock_mode = false;
     // default to CMAC
-    const char *home_str = "-35.363261,149.165230,584,353";
+    const char *home_str = nullptr;
     const char *model_str = nullptr;
     _use_fg_view = true;
     char *autotest_dir = nullptr;
     _fg_address = "127.0.0.1";
+    const char* config = "";
 
     const int BASE_PORT = 5760;
     const int RCIN_PORT = 5501;
@@ -263,10 +200,11 @@ void SITL_State::_parse_command_line(int argc, char * const argv[])
         CMDLINE_UARTE,
         CMDLINE_UARTF,
         CMDLINE_UARTG,
+        CMDLINE_UARTH,
         CMDLINE_RTSCTS,
         CMDLINE_BASE_PORT,
         CMDLINE_RCIN_PORT,
-        CMDLINE_SIM_ADDRESS = 15,
+        CMDLINE_SIM_ADDRESS,
         CMDLINE_SIM_PORT_IN,
         CMDLINE_SIM_PORT_OUT,
         CMDLINE_IRLOCK_PORT,
@@ -284,6 +222,7 @@ void SITL_State::_parse_command_line(int argc, char * const argv[])
         {"synthetic-clock", false,  0, 'S'},
         {"home",            true,   0, 'O'},
         {"model",           true,   0, 'M'},
+        {"config",          true,   0, 'c'},
         {"fg",              true,   0, 'F'},
         {"gimbal",          false,  0, CMDLINE_GIMBAL},
         {"disable-fgview",  false,  0, CMDLINE_FGVIEW},
@@ -296,6 +235,7 @@ void SITL_State::_parse_command_line(int argc, char * const argv[])
         {"uartE",           true,   0, CMDLINE_UARTE},
         {"uartF",           true,   0, CMDLINE_UARTF},
         {"uartG",           true,   0, CMDLINE_UARTG},
+        {"uartH",           true,   0, CMDLINE_UARTH},
         {"rtscts",          false,  0, CMDLINE_RTSCTS},
         {"base-port",       true,   0, CMDLINE_BASE_PORT},
         {"rc-in-port",      true,   0, CMDLINE_RCIN_PORT},
@@ -314,7 +254,7 @@ void SITL_State::_parse_command_line(int argc, char * const argv[])
     setvbuf(stdout, (char *)0, _IONBF, 0);
     setvbuf(stderr, (char *)0, _IONBF, 0);
 
-    GetOptLong gopt(argc, argv, "hwus:r:CI:P:SO:M:F:",
+    GetOptLong gopt(argc, argv, "hwus:r:CI:P:SO:M:F:c:",
                     options);
 
     while ((opt = gopt.getoption()) != -1) {
@@ -372,6 +312,9 @@ void SITL_State::_parse_command_line(int argc, char * const argv[])
         case 'M':
             model_str = gopt.optarg;
             break;
+        case 'c':
+            config = gopt.optarg;
+            break;
         case 'F':
             _fg_address = gopt.optarg;
             break;
@@ -394,6 +337,7 @@ void SITL_State::_parse_command_line(int argc, char * const argv[])
         case CMDLINE_UARTE:
         case CMDLINE_UARTF:
         case CMDLINE_UARTG:
+        case CMDLINE_UARTH:
             _uart_path[opt - CMDLINE_UARTA] = gopt.optarg;
             break;
         case CMDLINE_RTSCTS:
@@ -430,12 +374,22 @@ void SITL_State::_parse_command_line(int argc, char * const argv[])
 
     for (uint8_t i=0; i < ARRAY_SIZE(model_constructors); i++) {
         if (strncasecmp(model_constructors[i].name, model_str, strlen(model_constructors[i].name)) == 0) {
-            printf("Creating model %s at speed %.1f\n", model_str, speedup);
-            sitl_model = model_constructors[i].constructor(home_str, model_str);
+            // printf("Creating model %f,%f,%f,%f at speed %.1f\n", opos.lat, opos.lng, opos.alt, opos.hdg, speedup);
+            sitl_model = model_constructors[i].constructor(model_str);
+            if (home_str != nullptr) {
+                Location home;
+                float home_yaw;
+                if (!parse_home(home_str, home, home_yaw)) {
+                    ::printf("Failed to parse home string (%s).  Should be LAT,LON,ALT,HDG e.g. 37.4003371,-122.0800351,0,353\n", home_str);
+                    exit(1);
+                }
+                sitl_model->set_start_location(home, home_yaw);
+            }
             sitl_model->set_interface_ports(simulator_address, simulator_port_in, simulator_port_out);
             sitl_model->set_speedup(speedup);
             sitl_model->set_instance(_instance);
             sitl_model->set_autotest_dir(autotest_dir);
+            sitl_model->set_config(config);
             _synthetic_clock_mode = true;
             break;
         }
@@ -472,6 +426,62 @@ void SITL_State::_parse_command_line(int argc, char * const argv[])
     }
 
     _sitl_setup(home_str);
+}
+
+/*
+  parse a home string into a location and yaw
+ */
+bool SITL_State::parse_home(const char *home_str, Location &loc, float &yaw_degrees)
+{
+    char *saveptr = nullptr;
+    char *s = strdup(home_str);
+    if (!s) {
+        free(s);
+        ::printf("No home string supplied\n");
+        return false;
+    }
+    char *lat_s = strtok_r(s, ",", &saveptr);
+    if (!lat_s) {
+        free(s);
+        ::printf("Failed to parse latitude\n");
+        return false;
+    }
+    char *lon_s = strtok_r(nullptr, ",", &saveptr);
+    if (!lon_s) {
+        free(s);
+        ::printf("Failed to parse longitude\n");
+        return false;
+    }
+    char *alt_s = strtok_r(nullptr, ",", &saveptr);
+    if (!alt_s) {
+        free(s);
+        ::printf("Failed to parse altitude\n");
+        return false;
+    }
+    char *yaw_s = strtok_r(nullptr, ",", &saveptr);
+    if (!yaw_s) {
+        free(s);
+        ::printf("Failed to parse yaw\n");
+        return false;
+    }
+
+    loc = {};
+    loc.lat = static_cast<int32_t>(strtod(lat_s, nullptr) * 1.0e7);
+    loc.lng = static_cast<int32_t>(strtod(lon_s, nullptr) * 1.0e7);
+    loc.alt = static_cast<int32_t>(strtod(alt_s, nullptr) * 1.0e2);
+
+    if (loc.lat == 0 && loc.lng == 0) {
+        // default to CMAC instead of middle of the ocean. This makes
+        // SITL in MissionPlanner a bit more useful
+        loc.lat = -35.363261*1e7;
+        loc.lng = 149.165230*1e7;
+        loc.alt = 584*100;
+    }
+
+    yaw_degrees = strtof(yaw_s, nullptr);
+    free(s);
+
+    return true;
 }
 
 #endif
