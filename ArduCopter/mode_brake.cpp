@@ -80,7 +80,7 @@ void ModeBrake::run()
     }
 }
 
-void Copter::ModeBrake::timeout_to_mode_ms(uint32_t timeout_ms, control_mode_t mode, control_mode_t backup_mode)
+void ModeBrake::timeout_to_mode_ms(uint32_t timeout_ms, Mode::Number mode, Mode::Number backup_mode)
 {
     _timeout_start = millis();
     _timeout_ms = timeout_ms;
@@ -88,7 +88,7 @@ void Copter::ModeBrake::timeout_to_mode_ms(uint32_t timeout_ms, control_mode_t m
     _timeout_mode_backup = backup_mode;
 }
 
-void Copter::ModeBrake::suppress_to_mode(control_mode_t mode)
+void ModeBrake::suppress_to_mode(Mode::Number mode)
 {
     _cancel_if_radio_link = true;
     _cancel_to_mode = mode;

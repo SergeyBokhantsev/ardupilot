@@ -42,7 +42,7 @@ public:
     
     void set_power_mode(uint8_t mode) { _power_mode = mode; msg_pending = true; }
     void set_pit_mode(bool enabled);
-    void set_channel(uint8_t ch) { _channel = (uint8_t)constrain_int16(ch, 0, 39); }// Band A Ch 1 = 0 | Band R Ch 8 = 39
+    void set_channel(uint8_t chan) { _channel = (uint8_t)constrain_int16(chan, 0, 39); }// Band A Ch 1 = 0 | Band R Ch 8 = 39
     uint8_t get_channel() { return _channel; }
     void toggle_recording();
     void update(const float home_dist_meters);

@@ -1565,7 +1565,10 @@ void AP_OSD_Screen::draw_aspd2(uint8_t x, uint8_t y)
 void AP_OSD_Screen::draw_wattage(uint8_t x, uint8_t y)
 {    
     AP_BattMonitor &battery = AP::battery();
-    float amps = battery.current_amps();
+    float amps;
+    if (!battery.current_amps(amps)) {
+        amps = 0;
+    }
     float v = battery.voltage();
     // 5 cycles averaging rate (i.e. 2 Hz screen update)
     int16_t pwr_average = (int16_t)wattage_ctx.apply(v * amps, 5);    
@@ -1575,8 +1578,10 @@ void AP_OSD_Screen::draw_wattage(uint8_t x, uint8_t y)
 void AP_OSD_Screen::draw_wh_consumed(uint8_t x, uint8_t y)
 {
     AP_BattMonitor &battery = AP::battery();
-    float wh = battery.consumed_wh();
-    backend->write(x, y, false, "%3.1f%c", wh, SYM_WATHR);
+    float wh = 0;
+    bool blink = !battery.consumed_wh(wh);
+    
+    backend->write(x, y, blink, "%3.1f%c", wh, SYM_WATHR);
 }
 
 void AP_OSD_Screen::draw_board_vcc(uint8_t x, uint8_t y)
@@ -1604,10 +1609,20 @@ void AP_OSD_Screen::draw_estimation(uint8_t x, uint8_t y)
     if (estimator_ctx.shall_recalculate()) 
     {        
         AP_BattMonitor &battery = AP::battery();
-        float remain_wh = (float)(osd->bat_wh) - battery.consumed_wh();
+        
+        float consumed_wh;
+        if (!battery.consumed_wh(consumed_wh)) {
+            consumed_wh = 0;
+        }
+        
+        float remain_wh = (float)(osd->bat_wh) - consumed_wh;
          
         if (remain_wh > 0.0f){
-            float power = battery.current_amps() * battery.voltage();
+            float amps;
+            if (!battery.current_amps(amps)) {
+                amps = 0;
+            }            
+            float power = amps * battery.voltage();
              
             if (power > 30.0f){
                 

@@ -551,8 +551,8 @@ public:
     bool allows_arming(bool from_gcs) const override { return false; };
     bool is_autopilot() const override { return false; }
 
-    void timeout_to_mode_ms(uint32_t timeout_ms, control_mode_t mode, control_mode_t backup_mode);
-    void suppress_to_mode(control_mode_t mode);
+    void timeout_to_mode_ms(uint32_t timeout_ms, Mode::Number mode, Mode::Number backup_mode);
+    void suppress_to_mode(Mode::Number mode);
 
 protected:
 
@@ -565,11 +565,11 @@ private:
 
     uint32_t _timeout_start;
     uint32_t _timeout_ms;
-    control_mode_t _timeout_mode;
-    control_mode_t _timeout_mode_backup;
+    Mode::Number _timeout_mode;
+    Mode::Number _timeout_mode_backup;
     
     bool _cancel_if_radio_link;
-    control_mode_t _cancel_to_mode;
+    Mode::Number _cancel_to_mode;
 };
 
 

@@ -69,19 +69,19 @@ void UserParameters::vtxAutoOrForceLow(AP_SmartAudio& smart_audio, bool force_lo
 
 void UserParameters::vtxChannelSelect(AP_SmartAudio& smart_audio, uint8_t ch_flag)
 {
-   uint8_t ch = smart_audio.get_channel();
+   uint8_t chan = smart_audio.get_channel();
     
     switch (ch_flag)
     {
         case AUXSWITCH_HIGH:
-            ch = ch == 39 ? 0 : ch+1;
+            chan = chan == 39 ? 0 : chan+1;
             break;
         case AUXSWITCH_LOW:
-            ch = ch == 0 ? 39 : ch-1;
+            chan = chan == 0 ? 39 : chan-1;
             break;
     }
     
-    smart_audio.set_channel(ch); 
+    smart_audio.set_channel(chan); 
 }
 
 void UserParameters::vtxForceLowOrAutoOrForceHigh(AP_SmartAudio& smart_audio, uint8_t ch_flag)
