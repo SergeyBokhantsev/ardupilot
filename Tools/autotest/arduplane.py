@@ -814,6 +814,8 @@ class AutoTestPlane(AutoTest):
 #            raise NotAchievedException("Sensor healthy when it shouldn't be")
         self.set_parameter("SIM_RC_FAIL", 0)
         self.drain_mav_unparsed()
+        # have to allow time for RC to be fetched from SITL
+        self.delay_sim_time(0.5)
         m = self.mav.recv_match(type='SYS_STATUS', blocking=True)
         self.progress("Testing receiver enabled")
         if (not (m.onboard_control_sensors_enabled & receiver_bit)):
@@ -1417,6 +1419,10 @@ class AutoTestPlane(AutoTest):
             ("ADSB",
              "Test ADSB",
              self.test_adsb),
+
+            ("AdvancedFailsafe",
+             "Test Advanced Failsafe",
+             self.test_advanced_failsafe),
 
             ("LogDownLoad",
              "Log download",
