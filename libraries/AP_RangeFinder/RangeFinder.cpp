@@ -692,6 +692,14 @@ void RangeFinder::detect_instance(uint8_t instance, uint8_t& serial_instance)
             }
         }
         break;
+    case RangeFinder_TYPE_BenewakeTFminiPlus:
+        for (int8_t i=3; i>=0; i--) {
+            if (_add_backend(AP_RangeFinder_Benewake_TFMiniPlus::detect(state[instance],
+                                                                        hal.i2c_mgr->get_device(i, state[instance].address)))) {
+                break;
+            }
+        }
+        break;
 #if CONFIG_HAL_BOARD == HAL_BOARD_PX4
     case RangeFinder_TYPE_PX4_PWM:
         if (AP_RangeFinder_PX4_PWM::detect()) {
@@ -763,13 +771,6 @@ void RangeFinder::detect_instance(uint8_t instance, uint8_t& serial_instance)
     case RangeFinder_TYPE_BenewakeTFmini:
         if (AP_RangeFinder_Benewake::detect(serial_manager, serial_instance)) {
             drivers[instance] = new AP_RangeFinder_Benewake(state[instance], serial_manager, serial_instance++, AP_RangeFinder_Benewake::BENEWAKE_TFmini);
-        }
-        break;
-    case RangeFinder_TYPE_BenewakeTFminiPlus:
-        for (int8_t i=3; i>=0; i--) {
-            if (_add_backend(AP_RangeFinder_Benewake_TFMiniPlus::detect(state[instance], hal.i2c_mgr->get_device(i, state[instance].address)))) {
-                break;
-            }
         }
         break;
     default:
