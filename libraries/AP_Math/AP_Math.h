@@ -99,32 +99,30 @@ bool inverse(float x[], float y[], uint16_t dim) WARN_IF_UNUSED;
  * 100 == centi.
  */
 template <typename T>
-T wrap_180(const T angle, T unit_mod = T(1));
+T wrap_180(const T angle);
 
 /*
  * Wrap an angle in centi-degrees. See wrap_180().
  */
-inline float wrap_180_cd(const float angle) { return wrap_180(angle, float(100)); }
-inline int32_t wrap_180_cd(const int32_t angle) { return wrap_180(int(angle), int(100)); }
-#ifdef ALLOW_DOUBLE_MATH_FUNCTIONS
-inline double wrap_180_cd(const double angle) { return wrap_180(angle, double(100)); }
-#endif
+template <typename T>
+T wrap_180_cd(const T angle);
 
 /*
  * Constrain an euler angle to be within the range: 0 to 360 degrees. The
  * second parameter changes the units. Default: 1 == degrees, 10 == dezi,
  * 100 == centi.
  */
-float wrap_360(const float angle, float unit_mod = 1);
+float wrap_360(const float angle);
 #ifdef ALLOW_DOUBLE_MATH_FUNCTIONS
-double wrap_360(const double angle, double unit_mod = 1);
+double wrap_360(const double angle);
 #endif
-int wrap_360(const int angle, int unit_mod = 1);
+int wrap_360(const int angle);
 
-inline int32_t wrap_360_cd(const int32_t angle) { return wrap_360(int(angle), int(100)); }
-inline float wrap_360_cd(const float angle) { return wrap_360(angle, float(100)); }
+int wrap_360_cd(const int angle);
+long wrap_360_cd(const long angle);
+float wrap_360_cd(const float angle);
 #ifdef ALLOW_DOUBLE_MATH_FUNCTIONS
-inline double wrap_360_cd(const double angle) { return wrap_360(angle, double(100)); }
+double wrap_360_cd(const double angle);
 #endif
 
 
@@ -276,8 +274,11 @@ float rand_float(void);
 // generate a random Vector3f of size 1
 Vector3f rand_vec3f(void);
 
-// confirm a value is a valid octal value
-bool is_valid_octal(uint16_t octal) WARN_IF_UNUSED;
-
 // return true if two rotations are equal
 bool rotation_equal(enum Rotation r1, enum Rotation r2) WARN_IF_UNUSED;
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+// fill an array of float with NaN, used to invalidate memory in SITL
+void fill_nanf(float *f, uint16_t count);
+#endif
+

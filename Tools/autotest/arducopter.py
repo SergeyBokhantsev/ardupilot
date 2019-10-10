@@ -7,9 +7,7 @@ import math
 import os
 import shutil
 import time
-import traceback
 
-import pexpect
 from pymavlink import mavutil
 from pymavlink import mavextra
 
@@ -646,6 +644,43 @@ class AutoTestCopter(AutoTest):
         self.fly_fence_avoid_test_radius_check(avoid_behave=1, timeout=timeout)
         self.fly_fence_avoid_test_radius_check(avoid_behave=0, timeout=timeout)
 
+    def assert_prearm_failure(self, expected_statustext, timeout=5, ignore_prearm_failures=[]):
+        seen_statustext = False
+        seen_command_ack = False
+
+        self.drain_mav()
+        tstart = self.get_sim_time_cached()
+        arm_last_send = 0
+        while True:
+            if seen_command_ack and seen_statustext:
+                break
+            now = self.get_sim_time_cached()
+            if now - tstart > timeout:
+                raise NotAchievedException("Did not see failure-to-arm messages (statustext=%s command_ack=%s" % (seen_statustext, seen_command_ack))
+            if now - arm_last_send > 1:
+                arm_last_send = now
+                self.send_mavlink_arm_command()
+            m = self.mav.recv_match(blocking=True, timeout=1)
+            if m is None:
+                continue
+            if m.get_type() == "STATUSTEXT":
+                if expected_statustext in m.text:
+                    self.progress("Got: %s" % str(m))
+                    seen_statustext = True
+                elif "PreArm" in m.text and m.text[8:] not in ignore_prearm_failures:
+                    self.progress("Got: %s" % str(m))
+                    raise NotAchievedException("Unexpected prearm failure (%s)" % m.text)
+
+            if m.get_type() == "COMMAND_ACK":
+                print("Got: %s" % str(m))
+                if m.command == mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM:
+                    if m.result != 4:
+                        raise NotAchievedException("command-ack says we didn't fail to arm")
+                    self.progress("Got: %s" % str(m))
+                    seen_command_ack = True
+            if self.mav.motors_armed():
+                raise NotAchievedException("Armed when we shouldn't have")
+
     # fly_fence_test - fly east until you hit the horizontal circular fence
     def fly_fence_test(self, timeout=180):
         # enable fence, disable avoidance
@@ -664,43 +699,29 @@ class AutoTestCopter(AutoTest):
         self.start_subtest("ensure we can't arm if ouside fence")
         self.load_fence_using_mavproxy("fence-in-middle-of-nowhere.txt")
         self.delay_sim_time(5) # let fence check run so it loads-from-eeprom
-        seen_statustext = False
-        seen_command_ack = False
-
-        tstart = self.get_sim_time_cached()
-        while True:
-            self.send_mavlink_arm_command()
-            if seen_command_ack and seen_statustext:
-                break
-            if self.get_sim_time_cached() - tstart > 5:
-                raise NotAchievedException("Did not see failure-to-arm messages (statustext=%s command_ack=%s" % (seen_statustext, seen_command_ack))
-            m = self.mav.recv_match(blocking=True, timeout=1)
-            if m is None:
-                continue
-            if m.get_type() == "STATUSTEXT":
-                if "vehicle outside fence" in m.text:
-                    self.progress("Got: %s" % str(m))
-                    seen_statustext = True
-                elif "PreArm" in m.text:
-                    self.progress("Got: %s" % str(m))
-                    raise NotAchievedException("Unexpected prearm failure (%s)" % m.text)
-
-            if m.get_type() == "COMMAND_ACK":
-                print("Got: %s" % str(m))
-                if m.command == mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM:
-                    if m.result != 4:
-                        raise NotAchievedException("command-ack says we didn't fail to arm")
-                    self.progress("Got: %s" % str(m))
-                    seen_command_ack = True
-            if self.mav.motors_armed():
-                raise NotAchievedException("Armed when we shouldn't have")
-
+        self.assert_prearm_failure("vehicle outside fence")
         self.progress("Failed to arm outside fence (good!)")
+        self.clear_fence()
+        self.delay_sim_time(5) # let fence breach clear
         self.drain_mav()
-        self.mavproxy.send('fence clear\n')
-        self.delay_sim_time(2)
-        self.mavproxy.send('fence list\n')
-        self.mavproxy.expect("No geo-fence points")
+        self.end_subtest("ensure we can't arm if ouside fence")
+
+        self.start_subtest("ensure we can't arm with bad radius")
+        self.context_push()
+        self.set_parameter("FENCE_RADIUS", -1)
+        self.assert_prearm_failure("Invalid FENCE_RADIUS value")
+        self.context_pop()
+        self.progress("Failed to arm with bad radius")
+        self.drain_mav()
+        self.end_subtest("ensure we can't arm with bad radius")
+
+        self.start_subtest("ensure we can't arm with bad alt")
+        self.context_push()
+        self.set_parameter("FENCE_ALT_MAX", -1)
+        self.assert_prearm_failure("Invalid FENCE_ALT_MAX value")
+        self.context_pop()
+        self.progress("Failed to arm with bad altitude")
+        self.end_subtest("ensure we can't arm with bad radius")
 
         self.start_subtest("Check breach-fence behaviour")
         self.set_parameter("FENCE_TYPE", 2)
@@ -1833,7 +1854,6 @@ class AutoTestCopter(AutoTest):
             self.reboot_sitl()
 
             self.progress("Waiting for location")
-            old_pos = self.mav.location()
             self.zero_throttle()
             self.takeoff(10, 1800)
             self.change_mode("LAND")
@@ -3005,6 +3025,30 @@ class AutoTestCopter(AutoTest):
                                        (tdelta, max_good_tdelta))
         self.progress("Vehicle returned")
 
+    def fly_dynamic_notches(self):
+        self.progress("Flying with dynamic notches")
+        self.set_parameter("INS_HNTCH_ENABLE", 1)
+        self.set_parameter("INS_HNTCH_FREQ", 80)
+        self.set_parameter("INS_HNTCH_REF", 0.35)
+        # first and third harmonic
+        self.set_parameter("INS_HNTCH_HMNCS", 5)
+        self.set_parameter("INS_NOTCH_ENABLE", 1)
+        self.set_parameter("INS_NOTCH_FREQ", 90)
+        self.reboot_sitl()
+
+        self.set_parameter("SIM_GYR_RND", 10)
+        self.takeoff(10, mode="LOITER")
+
+        self.change_mode("ALT_HOLD")
+        # fly fast forrest!
+        self.set_rc(3, 1900)
+        self.set_rc(2, 1200)
+        self.wait_groundspeed(5, 1000)
+        self.set_rc(3, 1500)
+        self.set_rc(2, 1500)
+
+        self.do_RTL()
+
     def test_onboard_compass_calibration(self, timeout=240):
         twist_x = 2.1
         twist_y = 2.2
@@ -3384,8 +3428,6 @@ class AutoTestCopter(AutoTest):
         self.takeoff(10, mode="LOITER")
         self.set_parameter("SIM_SPEEDUP", 1)
         self.change_mode("FOLLOW")
-        ex = None
-        tstart = self.get_sim_time_cached()
         new_loc = self.mav.location()
         new_loc_offset_n = 20
         new_loc_offset_e = 30
@@ -3405,13 +3447,12 @@ class AutoTestCopter(AutoTest):
         while True:
             now = self.get_sim_time_cached()
             if now - last_sent > 0.5:
-                last_run = now
                 gpi = self.global_position_int_for_location(new_loc,
                                                             now,
                                                             heading=heading)
                 gpi.pack(self.mav.mav)
                 self.mav.mav.send(gpi)
-            m = self.mav.recv_match(type='GLOBAL_POSITION_INT', blocking=True)
+            self.mav.recv_match(type='GLOBAL_POSITION_INT', blocking=True)
             pos = self.mav.location()
             delta = self.get_distance(expected_loc, pos)
             max_delta = 2
@@ -3556,6 +3597,23 @@ class AutoTestCopter(AutoTest):
         self.wait_current_waypoint(0, timeout=10)
         self.set_rc(7, 1000)
 
+    def test_radio_failsafe(self):
+        self.start_subtest("If you haven't taken off yet RC failure should be instant disarm")
+        self.change_mode("STABILIZE")
+        self.set_parameter("DISARM_DELAY", 0)
+        self.arm_vehicle()
+        self.set_parameter("SIM_RC_FAIL", 1)
+        self.disarm_wait(timeout=1)
+        self.set_parameter("SIM_RC_FAIL", 0)
+        self.set_parameter("DISARM_DELAY", 10)
+
+        self.start_subtest("Default behavour from loiter should be RTL")
+        self.takeoff(10, mode="LOITER")
+        self.set_parameter("SIM_RC_FAIL", 1)
+        self.wait_mode("RTL")
+        self.disarm_wait(timeout=100)
+
+
     def tests(self):
         '''return list of all tests'''
         ret = super(AutoTestCopter, self).tests()
@@ -3667,6 +3725,10 @@ class AutoTestCopter(AutoTest):
              "Test Loiter Mode",
              self.loiter),
 
+            ("RadioFailsafe",
+             "Test radio failsafes",
+             self.test_radio_failsafe),
+
             ("SimpleMode",
              "Fly in SIMPLE mode",
              self.fly_simple),
@@ -3762,11 +3824,16 @@ class AutoTestCopter(AutoTest):
              "Test onboard compass calibration",
              self.test_onboard_compass_calibration),
 
+            ("DynamicNotches",
+             "Fly Dynamic Notches",
+             self.fly_dynamic_notches),
+
             ("LogDownLoad",
              "Log download",
              lambda: self.log_download(
                  self.buildlogs_path("ArduCopter-log.bin"),
                  upload_logs=len(self.fail_list) > 0))
+
         ])
         return ret
 
@@ -3909,7 +3976,7 @@ class AutoTestHeli(AutoTestCopter):
         if ex is not None:
             raise ex
 
-    def fly_spline_waypoint(self):
+    def fly_spline_waypoint(self, timeout=600):
         """ensure basic spline functionality works"""
         self.load_mission("copter_spline_mission.txt")
         self.change_mode("LOITER")
@@ -3922,23 +3989,22 @@ class AutoTestHeli(AutoTestCopter):
         self.set_rc(3, 1500)
         tstart = self.get_sim_time()
         while True:
+            if self.get_sim_time() - tstart > timeout:
+                raise AutoTestTimeoutException("Vehicle did not disarm after mission")
             if not self.armed():
                 break
-            remaining = self.get_sim_time() - tstart
-            if remaining <= 0:
-                raise AutoTestTimeoutException("Vehicle did not disarm after mission")
             self.delay_sim_time(1)
         self.progress("Lowering rotor speed")
         self.set_rc(8, 1000)
 
     def set_rc_default(self):
-        super(AutoTestCopter, self).set_rc_default()
+        super(AutoTestHeli, self).set_rc_default()
         self.progress("Lowering rotor speed")
         self.set_rc(8, 1000)
 
     def tests(self):
         '''return list of all tests'''
-        ret = super(AutoTestCopter, self).tests()
+        ret = AutoTest.tests(self)
         ret.extend([
             ("AVCMission", "Fly AVC mission", self.fly_avc_test),
 
