@@ -48,8 +48,7 @@ private:
     bool init();
     void timer();
 
-    bool process_raw_measure(le16_t distance_raw, le16_t strength_raw,
-                             uint16_t &output_distance_cm);
+    RangeFinder::RangeFinder_Status process_raw_measure(le16_t distance_raw, le16_t strength_raw, le16_t temperature_raw, uint16_t &output_distance_cm);
 
     bool check_checksum(uint8_t *arr, int pkt_len);
 
@@ -59,4 +58,11 @@ private:
         uint32_t sum;
         uint32_t count;
     } accum;
+    
+    uint16_t temperature;
+    
+    RangeFinder::RangeFinder_Status status;
+    
+    uint16_t last_distance;
+    uint16_t distance_equals_count;
 };

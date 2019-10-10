@@ -68,11 +68,12 @@ bool AP_RangeFinder_Benewake_TFMiniPlus::init()
     const uint8_t CMD_SYSTEM_RESET[] =       { 0x5A, 0x04, 0x04, 0x62 };
     const uint8_t CMD_OUTPUT_FORMAT_CM[] =   { 0x5A, 0x05, 0x05, 0x01, 0x65 };
     const uint8_t CMD_ENABLE_DATA_OUTPUT[] = { 0x5A, 0x05, 0x07, 0x01, 0x67 };
-    const uint8_t CMD_FRAME_RATE_100HZ[] =   { 0x5A, 0x06, 0x03, 0x64, 0x00, 0xC7 };
+    //const uint8_t CMD_FRAME_RATE_100HZ[] =   { 0x5A, 0x06, 0x03, 0x64, 0x00, 0xC7 };
+    const uint8_t CMD_FRAME_RATE_20HZ[] =   { 0x5A, 0x06, 0x03, 0x14, 0x00, 0x77 };
     const uint8_t CMD_SAVE_SETTINGS[] =      { 0x5A, 0x04, 0x11, 0x6F };
     const uint8_t *cmds[] = {
         CMD_OUTPUT_FORMAT_CM,
-        CMD_FRAME_RATE_100HZ,
+        CMD_FRAME_RATE_20HZ,
         CMD_ENABLE_DATA_OUTPUT,
         CMD_SAVE_SETTINGS,
     };
@@ -99,8 +100,8 @@ bool AP_RangeFinder_Benewake_TFMiniPlus::init()
         goto fail;
     }
 
-    if (val[5] * 10000 + val[4] * 100 + val[3] < 20003) {
-        hal.console->printf(DRIVER ": minimum required FW version 2.0.3, but version %u.%u.%u found\n",
+    if (val[5] * 10000 + val[4] * 100 + val[3] < 20002) {
+        hal.console->printf(DRIVER ": minimum required FW version 2.0.2, but version %u.%u.%u found\n",
                             val[5], val[4], val[3]);
         goto fail;
     }
@@ -138,31 +139,38 @@ void AP_RangeFinder_Benewake_TFMiniPlus::update()
 {
     WITH_SEMAPHORE(_sem);
 
-    if (accum.count > 0) {
-        state.distance_cm = accum.sum / accum.count;
-        state.last_reading_ms = AP_HAL::millis();
-        accum.sum = 0;
-        accum.count = 0;
-        update_status();
-    } else if (AP_HAL::millis() - state.last_reading_ms > 200) {
-        set_status(RangeFinder::RangeFinder_NoData);
+    if (status == RangeFinder::RangeFinder_Good) {
+        if (accum.count > 0) {
+            state.distance_cm = accum.sum / accum.count;
+            state.voltage_mv = temperature;                            
+            update_status();
+        }
+        status = RangeFinder::RangeFinder_NoData;
     }
+    else
+    {
+        set_status(status);
+    }
+        
+    accum.sum = 0;
+    accum.count = 0;
 }
 
-bool AP_RangeFinder_Benewake_TFMiniPlus::process_raw_measure(le16_t distance_raw, le16_t strength_raw,
-                                                             uint16_t &output_distance_cm)
+RangeFinder::RangeFinder_Status AP_RangeFinder_Benewake_TFMiniPlus::process_raw_measure(le16_t distance_raw, le16_t strength_raw, le16_t temperature_raw, uint16_t &output_distance_cm)
 {
     uint16_t strength = le16toh(strength_raw);
 
     output_distance_cm = le16toh(distance_raw);
+    temperature = (uint16_t)((float)le16toh(temperature_raw) / 8.0f - 256.0f);
 
-    if (strength < 100 || strength == 0xFFFF) {
-        return false;
+    if (strength < 100 || output_distance_cm > 1200) {
+        return RangeFinder::RangeFinder_OutOfRangeHigh;
+    }
+    else if (strength == 0xFFFF || output_distance_cm < 10) {
+        return RangeFinder::RangeFinder_OutOfRangeLow;
     }
 
-    output_distance_cm = constrain_int16(output_distance_cm, 10, 1200);
-
-    return true;
+    return RangeFinder::RangeFinder_Good;
 }
 
 bool AP_RangeFinder_Benewake_TFMiniPlus::check_checksum(uint8_t *arr, int pkt_len)
@@ -180,17 +188,17 @@ bool AP_RangeFinder_Benewake_TFMiniPlus::check_checksum(uint8_t *arr, int pkt_le
 
 void AP_RangeFinder_Benewake_TFMiniPlus::timer()
 {
-    uint8_t CMD_READ_MEASUREMENT[] = { 0x5A, 0x05, 0x00, 0x07, 0x66 };
+    uint8_t CMD_READ_MEASUREMENT[] = { 0x5A, 0x05, 0x00, 0x01, 0x60 };
     union {
         struct PACKED {
             uint8_t header1;
             uint8_t header2;
             le16_t distance;
             le16_t strength;
-            le32_t timestamp;
+            le16_t temperature;
             uint8_t checksum;
         } val;
-        uint8_t arr[11];
+        uint8_t arr[9];
     } u;
     bool ret;
     uint16_t distance;
@@ -203,9 +211,12 @@ void AP_RangeFinder_Benewake_TFMiniPlus::timer()
     if (u.val.header1 != 0x59 || u.val.header2 != 0x59 || !check_checksum(u.arr, sizeof(u)))
         return;
 
-    if (process_raw_measure(u.val.distance, u.val.strength, distance)) {
-        WITH_SEMAPHORE(_sem);
+    RangeFinder::RangeFinder_Status new_status = process_raw_measure(u.val.distance, u.val.strength, u.val.temperature, distance);
+    
+    WITH_SEMAPHORE(_sem);
+    status = new_status;
+    if (new_status == RangeFinder::RangeFinder_Good) {
         accum.sum += distance;
         accum.count++;
-    }
+    }    
 }
