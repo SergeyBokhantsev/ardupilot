@@ -967,16 +967,20 @@ void AP_OSD_Screen::draw_current(uint8_t x, uint8_t y)
 {
     AP_BattMonitor &battery = AP::battery();
     float amps;
-    if (!battery.current_amps(amps)) {
-        osd->avg_current_a = 0;
+    if (!battery.current_amps(amps)) {        
+        amps = 0;
     }
-    //filter current and display with autoranging for low values
-    osd->avg_current_a= osd->avg_current_a + (amps - osd->avg_current_a) * 0.33;
-    if (osd->avg_current_a < 10.0) {
-        backend->write(x, y, false, "%2.2f%c", osd->avg_current_a, SYM_AMP);
+    
+    if (amps > 5) // display averaged value at lower refresh rate (5 cycles averaging rate i.e. 2 Hz screen update)
+        amps = current_ctx.apply(amps, 5);
+    else // do average, but display a momentary value
+        current_ctx.apply(amps, 5);
+    
+    if (amps < 10.0) {
+        backend->write(x, y, amps >= osd->warn_amps, "%2.2f%c", amps, SYM_AMP);
     }
     else {
-        backend->write(x, y, false, "%2.1f%c", osd->avg_current_a, SYM_AMP);
+        backend->write(x, y, amps >= osd->warn_amps, "%2.1f%c", amps, SYM_AMP);
     }
 }
 
@@ -1281,9 +1285,9 @@ void AP_OSD_Screen::draw_vspeed(uint8_t x, uint8_t y)
         sym = 105; 
     else if (vspd < -1.2f)
         sym = 106; 
-    else if (vspd < -0.5f)
+    else if (vspd < -0.25f)
         sym = 107; 
-    else if (vspd <= 0.5f)
+    else if (vspd <= 0.25f)
         sym = 108;
     else if (vspd < 1.2f)
         sym = 109;
@@ -1470,7 +1474,11 @@ void AP_OSD_Screen::draw_stat(uint8_t x, uint8_t y)
 void AP_OSD_Screen::draw_dist(uint8_t x, uint8_t y)
 {
     backend->write(x, y, false, "%c", SYM_DIST);
-    draw_distance(x+1, y, osd->last_distance_m);
+    
+    float distance_scaled = u_scale(DISTANCE_LONG, osd->last_distance_m);
+    char unit_icon= u_icon(DISTANCE_LONG);
+    
+    backend->write(x, y, false, "%2.1f%c", distance_scaled, unit_icon);
 }
 
 void  AP_OSD_Screen::draw_flightime(uint8_t x, uint8_t y)
@@ -1478,7 +1486,8 @@ void  AP_OSD_Screen::draw_flightime(uint8_t x, uint8_t y)
     AP_Stats *stats = AP::stats();
     if (stats) {
         uint32_t t = stats->get_flight_time_s();
-        backend->write(x, y, false, "%c%3u:%02u", SYM_FLY, t/60, t%60);
+        float f = (float)(t/60) + ((float)(t%60) / 100.0f);
+        backend->write(x, y, false, "%2.2f", f);
     }
 }
 
@@ -1735,16 +1744,16 @@ void AP_OSD_Screen::draw_estimation(uint8_t x, uint8_t y)
     }    
     
     if (estimator_ctx.keep_home_crs){
-        backend->write(x, y, true, "%3d%c KHC", avrg_fly_time.get(), 0xCD);
+        backend->write(x, y, true, "/KH %2d%c", avrg_fly_time.get(), SYM_FLY);
     }
     else if (estimator_ctx.gap > 0){
-        backend->write(x, y, true, "%3d%c GAP %4d%c", avrg_fly_time.get(), 0xCD, estimator_ctx.gap, SYM_M);
+        backend->write(x, y, true, "/GP %2.1f%c", (float)estimator_ctx.gap / 1000.0f, SYM_KM);
     }
     else if (estimator_ctx.forward_estimation){
-        backend->write(x, y, estimator_ctx.blink, "%3d%c%4d%c%2.1f%c", avrg_fly_time.get(), 0xCD, avrg_fly_fwrd_time.get(), 0xCD, (float)(avrg_fly_fwrd_dist.get() * 50) / 1000.0f, SYM_KM);
+        backend->write(x, y, estimator_ctx.blink, "/%2.1f%c", (float)(avrg_fly_fwrd_dist.get() * 50) / 1000.0f, SYM_KM);
     }
     else if (estimator_ctx.time_estimation) {
-        backend->write(x, y, false, "%3d", avrg_fly_time.get());
+        backend->write(x, y, false, "/%3d%c", avrg_fly_time.get(), SYM_FLY);
     }     
 }
 
@@ -1755,8 +1764,7 @@ void AP_OSD_Screen::draw_rangefnd(uint8_t x, uint8_t y)
     if (AP_Notify::flags.rf_terr_foll)
     {
         // Terrain follow enabled
-        backend->write(x, y, true, "%c", 0xAF);
-        x += 2;
+        backend->write(x + 2, y + 1, true, "%c", 0xAF);
     }
     
     if (rf->has_orientation(ROTATION_PITCH_270)) {      
