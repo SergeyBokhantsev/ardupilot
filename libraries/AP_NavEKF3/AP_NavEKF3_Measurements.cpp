@@ -606,6 +606,17 @@ void NavEKF3_core::readGpsData()
 
             }
 
+            if (gpsGoodToAlign && !have_table_earth_field) {
+                table_earth_field_ga = AP_Declination::get_earth_field_ga(gpsloc);
+                table_declination = radians(AP_Declination::get_declination(gpsloc.lat*1.0e-7,
+                                                                            gpsloc.lng*1.0e-7));
+                have_table_earth_field = true;
+                if (frontend->_mag_ef_limit > 0) {
+                    // initialise earth field from tables
+                    stateStruct.earth_magfield = table_earth_field_ga;
+                }
+            }
+
             // convert GPS measurements to local NED and save to buffer to be fused later if we have a valid origin
             if (validOrigin) {
                 gpsDataNew.pos = EKF_origin.get_distance_NE(gpsloc);
@@ -622,6 +633,12 @@ void NavEKF3_core::readGpsData()
             // if the GPS has yaw data then input that as well
             float yaw_deg, yaw_accuracy_deg;
             if (AP::gps().gps_yaw_deg(yaw_deg, yaw_accuracy_deg)) {
+                // GPS modules are rather too optimistic about their
+                // accuracy. Set to min of 5 degrees here to prevent
+                // the user constantly receiving warnings about high
+                // normalised yaw innovations
+                const float min_yaw_accuracy_deg = 5.0f;
+                yaw_accuracy_deg = MAX(yaw_accuracy_deg, min_yaw_accuracy_deg);
                 writeEulerYawAngle(radians(yaw_deg), radians(yaw_accuracy_deg), gpsDataNew.time_ms, 2);
             }
 
@@ -1000,4 +1017,21 @@ void NavEKF3_core::learnInactiveBiases(void)
             inactiveBias[i].accel_bias -= error * (1.0e-4f * dtEkfAvg);
         }
     }
+}
+
+/*
+  return declination in radians
+*/
+float NavEKF3_core::MagDeclination(void) const
+{
+    // if we are using the WMM tables then use the table declination
+    // to ensure consistency with the table mag field. Otherwise use
+    // the declination from the compass library
+    if (have_table_earth_field && frontend->_mag_ef_limit > 0) {
+        return table_declination;
+    }
+    if (!use_compass()) {
+        return 0;
+    }
+    return _ahrs->get_compass()->get_declination();
 }

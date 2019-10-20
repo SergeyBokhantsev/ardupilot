@@ -588,6 +588,22 @@ const AP_Param::GroupInfo NavEKF3::var_info[] = {
     // @RebootRequired: True
     AP_GROUPINFO("FLOW_USE", 54, NavEKF3, _flowUse, FLOW_USE_DEFAULT),
 
+    // @Param: HRT_FILT
+    // @DisplayName: Height rate filter crossover frequency
+    // @Description: Specifies the crossover frequency of the complementary filter used to calculate the output predictor height rate derivative.
+    // @Range: 0.1 30.0
+    // @Units: Hz
+    // @RebootRequired: False
+    AP_GROUPINFO("HRT_FILT", 55, NavEKF3, _hrt_filt_freq, 2.0f),
+
+    // @Param: MAG_EF_LIM
+    // @DisplayName: EarthField error limit
+    // @Description: This limits the difference between the learned earth magnetic field and the earth field from the world magnetic model tables. A value of zero means to disable the use of the WMM tables.
+    // @User: Advanced
+    // @Range: 0 500
+    // @Units: mGauss
+    AP_GROUPINFO("MAG_EF_LIM", 56, NavEKF3, _mag_ef_limit, 50),
+
     AP_GROUPEND
 };
 
