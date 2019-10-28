@@ -67,15 +67,15 @@ void ModeBrake::run()
 
     if (_timeout_ms != 0 && millis()-_timeout_start >= _timeout_ms) {
         _timeout_ms = 0;
-        if (!copter.set_mode(_timeout_mode, MODE_REASON_BRAKE_TIMEOUT)) {
+        if (!copter.set_mode(_timeout_mode, ModeReason::BRAKE_TIMEOUT)) {
             if (_timeout_mode_backup != _timeout_mode){
-                copter.set_mode(_timeout_mode_backup, MODE_REASON_BRAKE_TIMEOUT);
+                copter.set_mode(_timeout_mode_backup, ModeReason::BRAKE_TIMEOUT);
             }
         }
     }
     
     if (_cancel_if_radio_link && !copter.failsafe.radio){
-        copter.set_mode(_cancel_to_mode, MODE_REASON_SUPPRESS_BRAKE);
+        copter.set_mode(_cancel_to_mode, ModeReason::SUPPRESS_BRAKE);
         _cancel_if_radio_link = false;
     }
 }

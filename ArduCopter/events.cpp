@@ -20,15 +20,15 @@ void Copter::failsafe_radio_on_event()
             // continue landing or other high priority failsafes
         } else {
             if (g.failsafe_throttle == FS_THR_ENABLED_ALWAYS_RTL) {
-                set_mode_RTL_or_land_with_pause(MODE_REASON_RADIO_FAILSAFE);
+                set_mode_RTL_or_land_with_pause(ModeReason::RADIO_FAILSAFE);
             } else if (g.failsafe_throttle == FS_THR_ENABLED_CONTINUE_MISSION) {
-                set_mode_RTL_or_land_with_pause(MODE_REASON_RADIO_FAILSAFE);
+                set_mode_RTL_or_land_with_pause(ModeReason::RADIO_FAILSAFE);
             } else if (g.failsafe_throttle == FS_THR_ENABLED_ALWAYS_SMARTRTL_OR_RTL) {
-                set_mode_SmartRTL_or_RTL(MODE_REASON_RADIO_FAILSAFE);
+                set_mode_SmartRTL_or_RTL(ModeReason::RADIO_FAILSAFE);
             } else if (g.failsafe_throttle == FS_THR_ENABLED_ALWAYS_SMARTRTL_OR_LAND) {
-                set_mode_SmartRTL_or_land_with_pause(MODE_REASON_RADIO_FAILSAFE);
+                set_mode_SmartRTL_or_land_with_pause(ModeReason::RADIO_FAILSAFE);
             } else { // g.failsafe_throttle == FS_THR_ENABLED_ALWAYS_LAND
-                set_mode_land_with_pause(MODE_REASON_RADIO_FAILSAFE);
+                set_mode_land_with_pause(ModeReason::RADIO_FAILSAFE);
             }
         }
     }
@@ -59,16 +59,16 @@ void Copter::handle_battery_failsafe(const char *type_str, const int8_t action)
             case Failsafe_Action_None:
                 return;
             case Failsafe_Action_Land:
-                set_mode_land_with_pause(MODE_REASON_BATTERY_FAILSAFE);
+                set_mode_land_with_pause(ModeReason::BATTERY_FAILSAFE);
                 break;
             case Failsafe_Action_RTL:
-                set_mode_RTL_or_land_with_pause(MODE_REASON_BATTERY_FAILSAFE);
+                set_mode_RTL_or_land_with_pause(ModeReason::BATTERY_FAILSAFE);
                 break;
             case Failsafe_Action_SmartRTL:
-                set_mode_SmartRTL_or_RTL(MODE_REASON_BATTERY_FAILSAFE);
+                set_mode_SmartRTL_or_RTL(ModeReason::BATTERY_FAILSAFE);
                 break;
             case Failsafe_Action_SmartRTL_Land:
-                set_mode_SmartRTL_or_land_with_pause(MODE_REASON_BATTERY_FAILSAFE);
+                set_mode_SmartRTL_or_land_with_pause(ModeReason::BATTERY_FAILSAFE);
                 break;
             case Failsafe_Action_Terminate:
 #if ADVANCED_FAILSAFE == ENABLED
@@ -136,11 +136,11 @@ void Copter::failsafe_gcs_check()
             g.failsafe_gcs == FS_GCS_ENABLED_CONTINUE_MISSION) {
             // continue mission
         } else if (g.failsafe_gcs == FS_GCS_ENABLED_ALWAYS_SMARTRTL_OR_RTL) {
-            set_mode_SmartRTL_or_RTL(MODE_REASON_GCS_FAILSAFE);
+            set_mode_SmartRTL_or_RTL(ModeReason::GCS_FAILSAFE);
         } else if (g.failsafe_gcs == FS_GCS_ENABLED_ALWAYS_SMARTRTL_OR_LAND) {
-            set_mode_SmartRTL_or_land_with_pause(MODE_REASON_GCS_FAILSAFE);
+            set_mode_SmartRTL_or_land_with_pause(ModeReason::GCS_FAILSAFE);
         } else { // g.failsafe_gcs == FS_GCS_ENABLED_ALWAYS_RTL
-            set_mode_RTL_or_land_with_pause(MODE_REASON_GCS_FAILSAFE);
+            set_mode_RTL_or_land_with_pause(ModeReason::GCS_FAILSAFE);
         }
     }
 }
@@ -208,7 +208,7 @@ void Copter::failsafe_terrain_on_event()
         mode_rtl.restart_without_terrain();
 #endif
     } else {
-        set_mode_RTL_or_land_with_pause(MODE_REASON_TERRAIN_FAILSAFE);
+        set_mode_RTL_or_land_with_pause(ModeReason::TERRAIN_FAILSAFE);
     }
 }
 
@@ -234,7 +234,7 @@ void Copter::gpsglitch_check()
 
 // set_mode_RTL_or_land_with_pause - sets mode to RTL if possible or LAND with 4 second delay before descent starts
 //  this is always called from a failsafe so we trigger notification to pilot
-void Copter::set_mode_RTL_or_land_with_pause(mode_reason_t reason)
+void Copter::set_mode_RTL_or_land_with_pause(ModeReason reason)
 {
     bool is_smart_mode = control_mode == Mode::Number::LOITER 
                       || control_mode == Mode::Number::POSHOLD 
@@ -242,7 +242,7 @@ void Copter::set_mode_RTL_or_land_with_pause(mode_reason_t reason)
     
     Mode::Number original_mode = control_mode;
     
-    if (reason == MODE_REASON_RADIO_FAILSAFE && is_smart_mode && RTL_WITH_DELAY_MS > 0 && set_mode(Mode::Number::BRAKE, reason)){
+    if (reason == ModeReason::RADIO_FAILSAFE && is_smart_mode && RTL_WITH_DELAY_MS > 0 && set_mode(Mode::Number::BRAKE, reason)){
         // alert pilot to mode change
         AP_Notify::events.failsafe_mode_change = 1;
         // schedule a transition to RTL or Land
@@ -261,7 +261,7 @@ void Copter::set_mode_RTL_or_land_with_pause(mode_reason_t reason)
 
 // set_mode_SmartRTL_or_land_with_pause - sets mode to SMART_RTL if possible or LAND with 4 second delay before descent starts
 // this is always called from a failsafe so we trigger notification to pilot
-void Copter::set_mode_SmartRTL_or_land_with_pause(mode_reason_t reason)
+void Copter::set_mode_SmartRTL_or_land_with_pause(ModeReason reason)
 {
     // attempt to switch to SMART_RTL, if this failed then switch to Land
     if (!set_mode(Mode::Number::SMART_RTL, reason)) {
@@ -274,7 +274,7 @@ void Copter::set_mode_SmartRTL_or_land_with_pause(mode_reason_t reason)
 
 // set_mode_SmartRTL_or_RTL - sets mode to SMART_RTL if possible or RTL if possible or LAND with 4 second delay before descent starts
 // this is always called from a failsafe so we trigger notification to pilot
-void Copter::set_mode_SmartRTL_or_RTL(mode_reason_t reason)
+void Copter::set_mode_SmartRTL_or_RTL(ModeReason reason)
 {
     // attempt to switch to SmartRTL, if this failed then attempt to RTL
     // if that fails, then land
