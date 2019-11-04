@@ -946,7 +946,7 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // @Description: This enables the vibration failsafe which will use modified altitude estimation and control during high vibrations
     // @Values: 0:Disabled, 1:Enabled
     // @User: Standard
-    AP_GROUPINFO("FS_VIBE_ENABLE", 36, ParametersG2, fs_vibe_enabled, 1),
+    AP_GROUPINFO("FS_VIBE_ENABLE", 35, ParametersG2, fs_vibe_enabled, 1),
     // @Param: FS_OPTIONS
     // @DisplayName: Failsafe options bitmask
     // @Description: Bitmask of additional options for battery, radio, & GCS failsafes. 0 (default) disables all options.
