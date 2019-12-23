@@ -159,15 +159,32 @@ void AP_SmartAudio::parse_response(uint8_t command, uint8_t* payload, uint8_t pa
             break;
            
         case 0x11:               // GET_SETTINGS SA v2.1
-            if (payload_size == 12) {
+            if (payload_size > 6) {
                 protocol = SA_PROTOCOL_v21;
                 channel = payload[0];
                 power_level = payload[1];
                 operation_mode = payload[2];
                 frequency = (payload[3] << 8) + payload[4];
                 power_dBm = payload[5];
-                power_levels_count = payload[6];
+                power_levels_count = payload[6] + 1;
                 gcs().send_text(MAV_SEVERITY_WARNING, "SA v21");
+            }
+            
+            if (power_levels_count > 0 && power_levels_count + 7 == payload_size) {
+                for (int i=0; i<power_levels_count; ++i) {
+                    if (i < DBM_ARRAY_SIZE){
+                        power_dBm_array[i] = payload[7+i];
+                    }
+                }
+            }
+            break;
+            
+        case SA_CMD_SET_POWER:
+            if (payload_size == 2) {
+                power_level = payload[0];
+                if (power_level <= power_levels_count && power_level <= DBM_ARRAY_SIZE) {
+                    power_dBm = power_dBm_array[power_level];
+                }
             }
             break;
     }

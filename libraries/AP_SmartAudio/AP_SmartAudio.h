@@ -7,6 +7,7 @@
 #define SA_IO_TIMEOUT_MS 200
 
 #define SA_BUFFER_SIZE 16
+#define DBM_ARRAY_SIZE 6
 
 #define SA_SYNC_BYTE 0xAA
 #define SA_HEADER_BYTE 0x55
@@ -65,6 +66,7 @@ private:
     uint8_t power_level;
     uint8_t power_dBm;
     uint8_t power_levels_count;
+    uint8_t power_dBm_array[DBM_ARRAY_SIZE];
     uint8_t operation_mode;
     uint8_t frequency;
 
