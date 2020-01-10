@@ -835,9 +835,9 @@ bool RC_Channel::read_3pos_switch(RC_Channel::aux_switch_pos_t &ret) const
         return false;
     }
     if (in < AUX_PWM_TRIGGER_LOW) {
-        ret = LOW;
+        ret = reversed ? HIGH : LOW;
     } else if (in > AUX_PWM_TRIGGER_HIGH) {
-        ret = HIGH;
+        ret = reversed ? LOW : HIGH;
     } else {
         ret = MIDDLE;
     }

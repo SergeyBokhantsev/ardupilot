@@ -49,6 +49,10 @@ void UserParameters::doSwitch(AP_Int8 _usr_sw_func, uint8_t ch_flag, AP_SmartAud
         case USR_SWITCH_RUNCAM_SPLIT_TOGGLE_REC:
             runcamToggleRecording(smart_audio, ch_flag);
             break;
+            
+        case USR_SWITCH_RUNCAM_SPLIT_TOGGLE_WIFI:
+            runcamToggleWifi(smart_audio, ch_flag);
+            break;
     }
 }
 
@@ -93,4 +97,10 @@ void UserParameters::runcamToggleRecording(AP_SmartAudio& smart_audio, uint8_t c
 {
     if (ch_flag == AUXSWITCH_HIGH)
         smart_audio.toggle_recording();
+}
+
+void UserParameters::runcamToggleWifi(AP_SmartAudio& smart_audio, uint8_t ch_flag)
+{
+    if (ch_flag == AUXSWITCH_HIGH)
+        smart_audio.toggle_wifi();
 }

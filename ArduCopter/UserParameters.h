@@ -9,6 +9,7 @@
 #define USR_SWITCH_VTX_CHANNEL_SELECT 3
 #define USR_SWITCH_VTX_FORCELOW_OR_AUTO_OR_FORCEHIGH 4
 #define USR_SWITCH_RUNCAM_SPLIT_TOGGLE_REC 5
+#define USR_SWITCH_RUNCAM_SPLIT_TOGGLE_WIFI 6
 
 #define AUXSWITCH_LOW 0
 #define AUXSWITCH_MEDIUM 1
@@ -35,4 +36,5 @@ private:
     void vtxChannelSelect(AP_SmartAudio& smart_audio, uint8_t ch_flag);
     void vtxForceLowOrAutoOrForceHigh(AP_SmartAudio& smart_audio, uint8_t ch_flag);    
     void runcamToggleRecording(AP_SmartAudio& smart_audio, uint8_t ch_flag);
+    void runcamToggleWifi(AP_SmartAudio& smart_audio, uint8_t ch_flag);    
 };

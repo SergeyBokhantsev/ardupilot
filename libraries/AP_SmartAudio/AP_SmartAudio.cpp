@@ -201,6 +201,12 @@ void AP_SmartAudio::toggle_recording()
     _gcs->send_text(MAV_SEVERITY_INFO, "REC switch");
 }
 
+void AP_SmartAudio::toggle_wifi()
+{    
+    send_rc_split_command(command_toggle_wifi, 3);
+    _gcs->send_text(MAV_SEVERITY_INFO, "REC toggle");
+}
+
 void AP_SmartAudio::update(float home_dist_meters)
 {
     bool command_sent = false;
