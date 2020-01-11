@@ -42,7 +42,7 @@ AP_RangeFinder_VL53L1X::AP_RangeFinder_VL53L1X(RangeFinder::RangeFinder_State &_
    trying to take a reading on I2C. If we get a result the sensor is
    there.
 */
-AP_RangeFinder_Backend *AP_RangeFinder_VL53L1X::detect(RangeFinder::RangeFinder_State &_state, AP_RangeFinder_Params &_params, AP_HAL::OwnPtr<AP_HAL::I2CDevice> dev)
+AP_RangeFinder_Backend *AP_RangeFinder_VL53L1X::detect(RangeFinder::RangeFinder_State &_state, AP_RangeFinder_Params &_params, AP_HAL::OwnPtr<AP_HAL::I2CDevice> dev, bool short_mode)
 {
     if (!dev) {
         return nullptr;
@@ -58,7 +58,7 @@ AP_RangeFinder_Backend *AP_RangeFinder_VL53L1X::detect(RangeFinder::RangeFinder_
 
     sensor->dev->get_semaphore()->take_blocking();
 
-    if (!sensor->check_id() || !sensor->init()) {
+    if (!sensor->check_id() || !sensor->init(short_mode)) {
         sensor->dev->get_semaphore()->give();
         delete sensor;
         return nullptr;
@@ -89,7 +89,7 @@ bool AP_RangeFinder_VL53L1X::check_id(void)
 /*
   initialise sensor
  */
-bool AP_RangeFinder_VL53L1X::init()
+bool AP_RangeFinder_VL53L1X::init(bool short_mode)
 {
     uint8_t pad_i2c_hv_extsup_config = 0;
     uint16_t mm_config_outer_offset_mm = 0;
@@ -138,7 +138,7 @@ bool AP_RangeFinder_VL53L1X::init()
           write_register16(DSS_CONFIG__MANUAL_EFFECTIVE_SPADS_SELECT, 200 << 8) &&
           write_register(DSS_CONFIG__ROI_MODE_CONTROL, 2) && // REQUESTED_EFFFECTIVE_SPADS
           read_register16(MM_CONFIG__OUTER_OFFSET_MM, mm_config_outer_offset_mm) &&
-          setDistanceMode(Long) &&
+          setDistanceMode(short_mode ? Short : Long) &&
           setMeasurementTimingBudget(40000) &&
           // the API triggers this change in VL53L1_init_and_start_range() once a
           // measurement is started; assumes MM1 and MM2 are disabled
@@ -478,8 +478,11 @@ bool AP_RangeFinder_VL53L1X::get_reading(uint16_t &reading_mm)
 #ifdef VL53L1X_DEBUG
         hal.console->printf("VL53L1X: %d ms status %d\n", AP_HAL::millis(), (int)range_status);
 #endif // VL53L1X_DEBUG
+        out_of_range = true;
         return false;
     }
+
+    out_of_range = false;
 
     if (!calibrated) {
         calibrated = setupManualCalibration();
@@ -553,6 +556,8 @@ void AP_RangeFinder_VL53L1X::update(void)
         update_status();
         sum_mm = 0;
         counter = 0;
+    } else if (out_of_range) {
+        set_status(RangeFinder::RangeFinder_OutOfRangeHigh);
     } else if (AP_HAL::millis() - state.last_reading_ms > 200) {
         // if no updates for 0.2s set no-data
         set_status(RangeFinder::RangeFinder_NoData);

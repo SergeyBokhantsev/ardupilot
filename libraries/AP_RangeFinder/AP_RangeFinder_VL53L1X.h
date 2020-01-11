@@ -9,7 +9,7 @@ class AP_RangeFinder_VL53L1X : public AP_RangeFinder_Backend
 
 public:
     // static detection function
-    static AP_RangeFinder_Backend *detect(RangeFinder::RangeFinder_State &_state, AP_RangeFinder_Params &_params, AP_HAL::OwnPtr<AP_HAL::I2CDevice> _dev);
+    static AP_RangeFinder_Backend *detect(RangeFinder::RangeFinder_State &_state, AP_RangeFinder_Params &_params, AP_HAL::OwnPtr<AP_HAL::I2CDevice> _dev, bool short_mode);
 
     // update state
     void update(void) override;
@@ -1242,7 +1242,7 @@ private:
     // constructor
     AP_RangeFinder_VL53L1X(RangeFinder::RangeFinder_State &_state, AP_RangeFinder_Params &_params, AP_HAL::OwnPtr<AP_HAL::I2CDevice> dev);
 
-    bool init();
+    bool init(bool short_mode);
     void timer();
 
     // check sensor ID
@@ -1273,6 +1273,7 @@ private:
     uint32_t sum_mm;
     uint32_t counter;
     bool calibrated;
+    bool out_of_range;
 
     bool read_register(uint16_t reg, uint8_t &value) WARN_IF_UNUSED;
     bool read_register16(uint16_t reg, uint16_t &value) WARN_IF_UNUSED;
