@@ -596,6 +596,11 @@ bool RCOutput::setup_group_DMA(pwm_group &group, uint32_t bitrate, uint32_t bit_
 #endif //#ifndef DISABLE_DSHOT
 }
 
+uint8_t RCOutput::get_group_mode(uint8_t index)
+{
+    pwm_group &group = pwm_group_list[i];
+    return (uint8_t)group.current_mode;
+}
 
 /*
   setup output mode for a group, using group.current_mode. Used to restore output

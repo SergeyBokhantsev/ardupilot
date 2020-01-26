@@ -182,6 +182,8 @@ public:
     };
     virtual void    set_output_mode(uint16_t mask, enum output_mode mode) {}
 
+    uint8_t get_group_mode(uint8_t index);
+
     /*
       set default update rate
      */

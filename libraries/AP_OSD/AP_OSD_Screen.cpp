@@ -946,11 +946,8 @@ void AP_OSD_Screen::draw_altitude(uint8_t x, uint8_t y)
 
 void AP_OSD_Screen::draw_bat_volt(uint8_t x, uint8_t y)
 {
-    AP_BattMonitor &battery = AP::battery();
-    uint8_t pct = battery.capacity_remaining_pct();
-    uint8_t p = (100 - pct) / 16.6;
-    float v = battery.voltage();
-    backend->write(x,y, v < osd->warn_batvolt, "%c%2.1f%c", SYM_BATT_FULL + p, (double)v, SYM_VOLT);
+    uint8_t mode = hal.rcout->get_group_mode(0);
+    backend->write(x,y, v < osd->warn_batvolt, "M:%1d", mode);
 }
 
 void AP_OSD_Screen::draw_rssi(uint8_t x, uint8_t y)
