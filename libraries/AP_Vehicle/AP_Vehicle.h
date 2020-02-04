@@ -53,7 +53,7 @@ public:
 
     bool virtual set_mode(const uint8_t new_mode, const ModeReason reason) = 0;
     
-    bool virtual userscript_hook(uint8_t i, float f) { return false; }
+    bool virtual userhook_script(uint8_t i, float f) { return false; }
 
     /*
       common parameters for fixed wing aircraft
