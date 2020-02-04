@@ -812,6 +812,8 @@ private:
     void update_flight_mode();
     void notify_flight_mode();
 
+    bool userhook_script(uint8_t i, float f) override;
+
     // mode_land.cpp
     void set_mode_land_with_pause(ModeReason reason);
     bool landing_with_GPS();
