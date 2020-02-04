@@ -80,7 +80,8 @@ AC_Loiter::AC_Loiter(const AP_InertialNav& inav, const AP_AHRS_View& ahrs, AC_Po
     _inav(inav),
     _ahrs(ahrs),
     _pos_control(pos_control),
-    _attitude_control(attitude_control)
+    _attitude_control(attitude_control),
+    speed_limit_ratio(1.0f)
 {
     AP_Param::setup_object_defaults(this, var_info);
 }
@@ -226,6 +227,7 @@ void AC_Loiter::update()
 // sanity check parameters
 void AC_Loiter::sanity_check_params()
 {
+    speed_limit_ratio = MAX(0.0f, MIN(1.0f, speed_limit_ratio));
     _speed_cms = MAX(_speed_cms, LOITER_SPEED_MIN);
     _accel_cmss = MIN(_accel_cmss, GRAVITY_MSS * 100.0f * tanf(ToRad(_attitude_control.lean_angle_max() * 0.01f)));
 }
@@ -239,7 +241,7 @@ void AC_Loiter::calc_desired_velocity(float nav_dt)
 
     // calculate a loiter speed limit which is the minimum of the value set by the LOITER_SPEED
     // parameter and the value set by the EKF to observe optical flow limits
-    float gnd_speed_limit_cms = MIN(_speed_cms, ekfGndSpdLimit*100.0f);
+    float gnd_speed_limit_cms = MIN(_speed_cms * speed_limit_ratio, ekfGndSpdLimit*100.0f);
     gnd_speed_limit_cms = MAX(gnd_speed_limit_cms, LOITER_SPEED_MIN);
 
     float pilot_acceleration_max = GRAVITY_MSS*100.0f * tanf(radians(get_angle_max_cd()*0.01f));

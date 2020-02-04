@@ -56,6 +56,9 @@ public:
 
     static const struct AP_Param::GroupInfo var_info[];
 
+    /// set max speed limit 0.1 - 1.0
+    void set_max_speed_limit(float ratio) { speed_limit_ratio = ratio; }
+
 protected:
 
     // sanity check parameters
@@ -86,4 +89,6 @@ protected:
     Vector2f    _predicted_euler_rate;
     float       _brake_timer;
     float       _brake_accel;
+    
+    float speed_limit_ratio;
 };

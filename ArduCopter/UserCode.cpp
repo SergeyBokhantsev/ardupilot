@@ -81,3 +81,10 @@ void Copter::userhook_auxSwitch3(uint8_t ch_flag)
     g2.user_parameters.doSwitch(3, ch_flag, g2.smart_audio);
 }
 #endif
+
+bool Copter::userhook_script(uint8_t i, float f)
+{
+    loiter_nav->set_max_speed_limit(f);
+    
+    return true;
+}
