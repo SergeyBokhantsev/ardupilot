@@ -192,6 +192,8 @@
 
 #include "mode.h"
 
+#include "cruisecontrol.h"
+
 class Copter : public AP_Vehicle {
 public:
     friend class GCS_MAVLINK_Copter;
@@ -245,6 +247,8 @@ public:
     void loop() override;
 
 private:
+    CruiseControl ccontrol;
+
     static const AP_FWVersion fwver;
 
     // key aircraft parameters passed to multiple libraries
@@ -447,6 +451,9 @@ private:
     int32_t super_simple_last_bearing;
     float super_simple_cos_yaw;
     float super_simple_sin_yaw;
+
+    // Cruise control static ratio
+    float cruise_static_ratio;
 
     // Stores initial bearing when armed - initial simple bearing is modified in super simple mode so not suitable
     int32_t initial_armed_bearing;

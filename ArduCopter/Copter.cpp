@@ -518,12 +518,34 @@ void Copter::update_simple_mode(void)
     float rollx, pitchx;
 
     // exit immediately if no new radio frame or not in simple mode
-    if (ap.simple_mode == 0 || !ap.new_radio_frame) {
+    if (!ap.new_radio_frame)
+    {
         return;
     }
 
     // mark radio frame as consumed
     ap.new_radio_frame = false;
+
+    if (ap.simple_mode == 0)
+    {
+        float battery_current;
+        if (!AP::battery().current_amps(battery_current, 0))
+            battery_current = 0.0f;
+
+        ccontrol.update(battery_current);
+
+        uint8_t new_state = ccontrol.get_state();
+        if (new_state != AP_Notify::flags.cruise_ctrl_mode)
+        {
+            AP_Notify::flags.cruise_ctrl_mode = new_state;
+
+            if (new_state == CC_STATE_DISENGAGED)
+                gcs().send_text(MAV_SEVERITY_INFO, "Cruise disabled");
+            else if (new_state == CC_STATE_ENGAGED)
+                gcs().send_text(MAV_SEVERITY_INFO, "Cruise enabled");
+        }
+        return;
+    }
 
     if (ap.simple_mode == 1) {
         // rotate roll, pitch input by -initial simple heading (i.e. north facing)

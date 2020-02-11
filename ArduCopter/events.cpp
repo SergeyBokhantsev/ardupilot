@@ -14,6 +14,8 @@ void Copter::failsafe_radio_on_event()
 {
     AP::logger().Write_Error(LogErrorSubsystem::FAILSAFE_RADIO, LogErrorCode::FAILSAFE_OCCURRED);
 
+    ccontrol.disengage();
+
     // set desired action based on FS_THR_ENABLE parameter
     Failsafe_Action desired_action;
     switch (g.failsafe_throttle) {
