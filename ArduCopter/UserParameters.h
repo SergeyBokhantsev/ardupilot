@@ -25,7 +25,6 @@ public:
     
     void doSwitch(uint8_t sw, uint8_t ch_flag, AP_SmartAudio& smart_audio);
     
-    uint8_t getCruiseChannelNumber() const { return _cruise_chan; }
     float getCruiseAmps() const { return _cruise_amps; }
     uint8_t getCruiseJerk() const { return _cruise_jerk; }
 
@@ -33,7 +32,6 @@ private:
     AP_Int8 _usr_sw1_func;
     AP_Int8 _usr_sw2_func;
     AP_Int8 _usr_sw3_func;    
-    AP_Int8 _cruise_chan;
     AP_Float _cruise_amps;
     AP_Int8 _cruise_jerk;
     

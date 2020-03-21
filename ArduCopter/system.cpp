@@ -261,8 +261,7 @@ void Copter::init_ardupilot()
     // disable safety if requested
     BoardConfig.init_safety();
 
-    uint8_t cruise_ch = g2.user_parameters.getCruiseChannelNumber();
-    RC_Channel *channel_cruise = cruise_ch > 0 ? rc().channel(cruise_ch - 1) : nullptr;
+    RC_Channel *channel_cruise = rc().find_channel_for_option(RC_Channel::AUX_FUNC::CRUISECONTROL);
     ccontrol.init(channel_cruise, channel_pitch, channel_roll, g2.user_parameters.getCruiseAmps(), g2.user_parameters.getCruiseJerk());
 
     hal.console->printf("\nReady to FLY ");

@@ -15,8 +15,7 @@ const AP_Param::GroupInfo UserParameters::var_info[] = {
     // USER SWITH #3 FUNCTION (CHx_OPT = 49)
     AP_GROUPINFO("_SW3_FUNC", 2, UserParameters, _usr_sw3_func, USR_SWITCH_NONE),
     
-    // Cruise control channel number
-    AP_GROUPINFO("_CRZ_CH", 3, UserParameters, _cruise_chan, 0),
+    // CRUISE CONTROL PARAMS
     AP_GROUPINFO("_CRZ_AMPS", 4, UserParameters, _cruise_amps, 0), // keep batt current below this value
     AP_GROUPINFO("_CRZ_JERK", 5, UserParameters, _cruise_jerk, 10), // batt current limitation sharpness (more - quicker)
 

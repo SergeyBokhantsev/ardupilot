@@ -82,6 +82,7 @@ void RC_Channel_Copter::init_aux_function(const aux_func_t ch_option, const aux_
         do_aux_function(ch_option, ch_flag);
         break;
     // the following functions do not need to be initialised:
+    case AUX_FUNC::CRUISECONTROL:
     case AUX_FUNC::FLIP:
     case AUX_FUNC::RTL:
     case AUX_FUNC::SAVE_TRIM:
@@ -109,7 +110,7 @@ void RC_Channel_Copter::init_aux_function(const aux_func_t ch_option, const aux_
     case AUX_FUNC::ALTHOLD:
     case AUX_FUNC::FLOWHOLD:
     case AUX_FUNC::CIRCLE:
-    case AUX_FUNC::DRIFT:
+    case AUX_FUNC::DRIFT:    
         break;
     default:
         RC_Channel::init_aux_function(ch_option, ch_flag);
@@ -577,6 +578,11 @@ void RC_Channel_Copter::do_aux_function(const aux_func_t ch_option, const aux_sw
                 copter.surface_tracking.set_surface(Copter::SurfaceTracking::Surface::CEILING);
                 break;
             }
+            break;
+
+        case AUX_FUNC::CRUISECONTROL:
+            // Do nothing, Cruisecontrol.cpp will handle
+            // This is just to avoid "Invalid Channel option" message
             break;
 
     default:

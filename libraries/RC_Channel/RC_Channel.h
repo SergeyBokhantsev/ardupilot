@@ -180,6 +180,9 @@ public:
         // if you add something here, make sure to update the documentation of the parameter in RC_Channel.cpp!
         // also, if you add an option >255, you will need to fix duplicate_options_exist
 
+        // SB
+        CRUISECONTROL =      150, // Cruise Control channel
+
         // inputs eventually used to replace RCMAP
         MAINSAIL =           207, // mainsail input
     };
