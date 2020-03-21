@@ -995,7 +995,10 @@ void AP_OSD_Screen::draw_fltmode(uint8_t x, uint8_t y)
     
     bool blink = flt_mode_ctx.blink(AP_Notify::flags.flight_mode, 30);
     
-    backend->write(x, y, blink, "%s%c", AP::notify().get_flight_mode_str(), arm);
+    if (AP_Notify::flags.cruise_ctrl_mode == 2)
+        backend->write(x, y, blink, "CRZ %s%c", AP::notify().get_flight_mode_str(), arm);
+    else
+        backend->write(x, y, blink, "%s%c", AP::notify().get_flight_mode_str(), arm);
 }
 
 void AP_OSD_Screen::draw_sats(uint8_t x, uint8_t y)
