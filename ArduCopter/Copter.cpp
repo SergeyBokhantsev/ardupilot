@@ -537,12 +537,12 @@ void Copter::update_simple_mode(void)
         uint8_t new_state = ccontrol.get_state();
         if (new_state != AP_Notify::flags.cruise_ctrl_mode)
         {
-            AP_Notify::flags.cruise_ctrl_mode = new_state;
-
-            if (new_state == CC_STATE_DISENGAGED)
+            if (AP_Notify::flags.cruise_ctrl_mode == CC_STATE_ENGAGED && new_state == CC_STATE_DISENGAGED)
                 gcs().send_text(MAV_SEVERITY_INFO, "Cruise disabled");
             else if (new_state == CC_STATE_ENGAGED)
                 gcs().send_text(MAV_SEVERITY_INFO, "Cruise enabled");
+
+            AP_Notify::flags.cruise_ctrl_mode = new_state;
         }
         return;
     }

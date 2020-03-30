@@ -54,7 +54,10 @@ void CruiseControl::update(float battery_amps)
                     break;
 
                 case CC_STATE_ENGAGED:
-                    update_pitch(cruise_ratio, battery_amps);
+                    if (cruise_ratio > 0.1f)
+                        update_pitch(cruise_ratio, battery_amps);
+                    else
+                        disengage();
                     break;
             }
         }
@@ -71,21 +74,34 @@ void CruiseControl::update_pitch(float cruise_ratio, float battery_amps)
     {
         float fade = constrain_float(abs(cruise_amps - battery_amps) / 3.0f, 0.0f, 1.0f);
 
-        if (battery_amps > cruise_amps)
-            cruise_static_ratio -=  cruise_jerk / (1000.0f * fade);
-        else
-            cruise_static_ratio +=  cruise_jerk / (1000.0f * fade);
+        if (fade > 0.0f)
+        {
+            if (battery_amps > cruise_amps)
+                cruise_static_ratio -=  cruise_jerk / (1000.0f * fade);
+            else
+                cruise_static_ratio +=  cruise_jerk / (1000.0f * fade);
+        }
     }
     else
         cruise_static_ratio = 1.0f;
     
     cruise_static_ratio = constrain_float(cruise_static_ratio, 0.2f, 1.0f);
-    uint16_t range = channel_pitch->get_radio_trim() - channel_pitch->get_radio_min();
 
-    if (range < 0.0f)
+    float range = channel_pitch->get_reverse() 
+                   ? (float)(channel_pitch->get_radio_max() - channel_pitch->get_radio_trim())
+                   : (float)(channel_pitch->get_radio_trim() - channel_pitch->get_radio_min());
+
+    if (range < 0.0f || range > channel_pitch->get_radio_max())
+    {
+        disengage();
         return;
+    }
 
-    float pitchx = (float)range * cruise_ratio * cruise_static_ratio;
-    channel_pitch->set_radio_in(channel_pitch->get_radio_trim() - (uint16_t)pitchx);
+    float pitchx = range * cruise_ratio * cruise_static_ratio;
+
+    channel_pitch->set_radio_in(channel_pitch->get_reverse() 
+                                ? channel_pitch->get_radio_trim() + (uint16_t)pitchx
+                                : channel_pitch->get_radio_trim() - (uint16_t)pitchx);
+
     channel_pitch->recompute_pwm_no_deadzone();
 }
