@@ -57,6 +57,10 @@ void UserParameters::doSwitch(AP_Int8 _usr_sw_func, uint8_t ch_flag, AP_SmartAud
         case USR_SWITCH_RUNCAM_SPLIT_TOGGLE_WIFI:
             runcamToggleWifi(smart_audio, ch_flag);
             break;
+            
+        case USR_SWITCH_LED_CONTROL:            
+            AP_Notify::flags.leds_disabled = ch_flag == AUXSWITCH_LOW;
+            break;
     }
 }
 

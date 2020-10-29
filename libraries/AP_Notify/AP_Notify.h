@@ -106,6 +106,7 @@ public:
         uint8_t vtx_power;        // VTX power
         bool rf_terr_foll;        // Rangefinder terrain following enabled
         uint8_t cruise_ctrl_mode; // Cruise control mode
+        bool leds_disabled;       // Disable LEDs
     };
 
     /// notify_events_type - bitmask of active events.
