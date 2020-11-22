@@ -1209,6 +1209,14 @@ struct PACKED log_SMAUD_VTX_PWR {
     uint8_t mode;
 };
 
+struct PACKED log_CCONTROL {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    uint8_t error;
+    uint8_t state;
+    float ratio;
+};
+
 struct PACKED log_DSTL {
     LOG_PACKET_HEADER;
     uint64_t time_us;
@@ -1429,7 +1437,9 @@ struct PACKED log_Arm_Disarm {
     { LOG_OA_DIJKSTRA_MSG, sizeof(log_OADijkstra), \
       "OADJ","QBBBBLLLL","TimeUS,State,Err,CurrPoint,TotPoints,DLat,DLng,OALat,OALng", "sbbbbDUDU", "F----GGGG" }, \
     { LOG_SMAUD_VTX_PWR_MSG, sizeof(log_SMAUD_VTX_PWR), \
-      "VTX", "QBbB", "TimeUS,Power,Zone,Mode", "s---", "F000" }
+      "VTX", "QBbB", "TimeUS,Power,Zone,Mode", "s---", "F000" }, \
+    { 40, sizeof(log_CCONTROL), \
+      "CCTRL", "QBBf", "TimeUS,Error,State, Ratio", "s--m", "F00-" }
 
 // messages for more advanced boards
 #define LOG_EXTRA_STRUCTURES \

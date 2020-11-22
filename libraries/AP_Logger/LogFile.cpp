@@ -1062,3 +1062,16 @@ void AP_Logger::Write_SMAUD_VTX(uint8_t power, int8_t zone, uint8_t mode)
     WriteBlock(&pkt, sizeof(pkt));
 }
 
+void AP_Logger::Write_CRUISE_CONTROL(uint8_t error, uint8_t state, float ratio)
+{    
+    struct log_CCONTROL pkt = {
+        LOG_PACKET_HEADER_INIT(40),
+        time_us         : AP_HAL::micros64(),
+        error           : error,
+        state           : state,
+        ratio           : ratio
+    };
+    
+    WriteBlock(&pkt, sizeof(pkt));
+}
+

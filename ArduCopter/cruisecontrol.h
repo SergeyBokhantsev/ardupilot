@@ -6,6 +6,16 @@
 #define CC_STATE_READY_TO_ENGAGE 1
 #define CC_STATE_ENGAGED 2
 
+#define CC_ERROR_NOTINIT 1
+#define CC_ERROR_NOPITCH_CHAN 2
+#define CC_ERROR_NOROLL_CHAN 4
+#define CC_ERROR_NOCRUISE_CHAN 8
+#define CC_ERROR_PITCH_RANGE 16
+#define CC_ERROR_NOT_FLYING 32
+#define CC_ERROR_NOT_ARMED 64
+#define CC_ERROR_STICKS 128
+
+
 class CruiseControl
 {
 public:
@@ -29,6 +39,7 @@ private:
 
     uint8_t state;
     float cruise_static_ratio;
+    uint8_t error;
 
     void update_pitch(float cruise_ratio, float battery_current);
 };

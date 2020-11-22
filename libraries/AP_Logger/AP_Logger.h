@@ -285,6 +285,7 @@ public:
     void Write_OADijkstra(uint8_t state, uint8_t error_id, uint8_t curr_point, uint8_t tot_points, const Location &final_dest, const Location &oa_dest);
 
     void Write_SMAUD_VTX(uint8_t power, int8_t zone, uint8_t hi_power_mode);
+    void Write_CRUISE_CONTROL(uint8_t error, uint8_t state, float ratio);
     void Write(const char *name, const char *labels, const char *fmt, ...);
     void Write(const char *name, const char *labels, const char *units, const char *mults, const char *fmt, ...);
     void WriteCritical(const char *name, const char *labels, const char *fmt, ...);

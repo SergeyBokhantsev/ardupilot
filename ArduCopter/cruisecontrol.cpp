@@ -2,10 +2,12 @@
 #include "cruisecontrol.h"
 #include <AP_Math/AP_Math.h>
 #include <AP_Notify/AP_Notify.h>
+#include <AP_Logger/AP_Logger.h>
 
 CruiseControl::CruiseControl() :
  initialized(false),
- state(CC_STATE_DISENGAGED)
+ state(CC_STATE_DISENGAGED),
+ error(CC_ERROR_NOTINIT)
 {
 }
 
@@ -17,55 +19,86 @@ void CruiseControl::init(RC_Channel* _channel_cruise, RC_Channel* _channel_pitch
     cruise_amps = _cruise_amps;
     cruise_jerk = (float)_cruise_jerk;
 
-    if (channel_cruise != nullptr && channel_pitch != nullptr && channel_roll != nullptr)
+    error = 0;
+
+    if (channel_cruise == nullptr)
+        error |= CC_ERROR_NOCRUISE_CHAN;
+
+    if (channel_pitch == nullptr)
+        error |= CC_ERROR_NOPITCH_CHAN;
+
+    else if (channel_roll == nullptr)
+        error |= CC_ERROR_NOROLL_CHAN;
+
+    if (error == 0)
         initialized = true;
 }
 
 void CruiseControl::update(float battery_amps)
 {
-    if (!initialized
-        || !AP_Notify::flags.armed
-        || !AP_Notify::flags.flying)
-    {
-        disengage();
-        return;
-    }
+    float cruise_ratio = 0.0f;
 
-    if (state == CC_STATE_DISENGAGED)
+    if (!initialized)
+        return;
+
+    error = 0;
+
+    if (AP_Notify::flags.flying)
+        error &= ~CC_ERROR_NOT_FLYING;
+    else
+        error |= CC_ERROR_NOT_FLYING;
+
+    if (AP_Notify::flags.armed)
+        error &= ~CC_ERROR_NOT_ARMED;
+    else
+        error |= CC_ERROR_NOT_ARMED;
+
+    if (error == 0)
     {
-        // Allow engage condition: cruise ch value is minimum and pitch/roll are centered
-        if (channel_cruise->norm_input_dz() < -0.90f && channel_pitch->in_trim_dz() && channel_roll->in_trim_dz())
+        if (state == CC_STATE_DISENGAGED)
         {
-            state = CC_STATE_READY_TO_ENGAGE;
+            // Allow engage condition: cruise ch value is minimum and pitch/roll are centered
+            if (channel_cruise->norm_input_dz() < -0.90f && channel_pitch->in_trim_dz() && channel_roll->in_trim_dz())
+            {
+                state = CC_STATE_READY_TO_ENGAGE;
+            }
+            else
+                error = CC_ERROR_STICKS;
+        }
+        else
+        {
+            // keep cruise while pitch/roll not moving
+            if (channel_pitch->in_trim_dz() && channel_roll->in_trim_dz())
+            {
+                cruise_ratio = (channel_cruise->norm_input() + 1.0f) / 2.0f;
+
+                switch (state)
+                {
+                    case CC_STATE_READY_TO_ENGAGE:
+                        if (cruise_ratio > 0.1f)
+                            state = CC_STATE_ENGAGED;
+                        break;
+
+                    case CC_STATE_ENGAGED:
+                        if (cruise_ratio > 0.1f)
+                            update_pitch(cruise_ratio, battery_amps);
+                        else
+                            disengage();
+                        break;
+                }
+            }
+            else
+            {
+                disengage();
+            }
         }
     }
     else
     {
-        // keep cruise while pitch/roll not moving
-        if (channel_pitch->in_trim_dz() && channel_roll->in_trim_dz())
-        {
-            float cruise_ratio = (channel_cruise->norm_input() + 1.0f) / 2.0f;
-
-            switch (state)
-            {
-                case CC_STATE_READY_TO_ENGAGE:
-                    if (cruise_ratio > 0.1f)
-                        state = CC_STATE_ENGAGED;
-                    break;
-
-                case CC_STATE_ENGAGED:
-                    if (cruise_ratio > 0.1f)
-                        update_pitch(cruise_ratio, battery_amps);
-                    else
-                        disengage();
-                    break;
-            }
-        }
-        else
-        {
-            disengage();
-        }
+        disengage();
     }
+
+    AP::logger().Write_CRUISE_CONTROL(error, state, cruise_ratio);
 }
 
 void CruiseControl::update_pitch(float cruise_ratio, float battery_amps)
@@ -93,6 +126,7 @@ void CruiseControl::update_pitch(float cruise_ratio, float battery_amps)
 
     if (range < 0.0f || range > channel_pitch->get_radio_max())
     {
+        error = CC_ERROR_PITCH_RANGE;
         disengage();
         return;
     }
