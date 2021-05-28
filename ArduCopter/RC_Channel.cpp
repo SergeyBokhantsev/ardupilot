@@ -449,15 +449,15 @@ bool RC_Channel_Copter::do_aux_function(const aux_func_t ch_option, const AuxSwi
 
 #ifdef USERHOOK_AUXSWITCH
         case AUX_FUNC::USER_FUNC1:
-            copter.userhook_auxSwitch1(ch_flag);
+            copter.userhook_auxSwitch1((uint8_t)ch_flag);
             break;
 
         case AUX_FUNC::USER_FUNC2:
-            copter.userhook_auxSwitch2(ch_flag);
+            copter.userhook_auxSwitch2((uint8_t)ch_flag);
             break;
 
         case AUX_FUNC::USER_FUNC3:
-            copter.userhook_auxSwitch3(ch_flag);
+            copter.userhook_auxSwitch3((uint8_t)ch_flag);
             break;
 #endif
 

@@ -35,6 +35,11 @@ RGBLed::RGBLed(uint8_t led_off, uint8_t led_bright, uint8_t led_medium, uint8_t 
 // set_rgb - set color as a combination of red, green and blue values
 void RGBLed::_set_rgb(uint8_t red, uint8_t green, uint8_t blue)
 {
+	if (AP_Notify::flags.leds_disabled)
+    {
+        red = green = blue = 0;
+    } 
+	
     if (red != _red_curr ||
         green != _green_curr ||
         blue != _blue_curr) {

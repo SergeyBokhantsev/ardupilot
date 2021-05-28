@@ -621,7 +621,8 @@ public:
     bool allows_arming(AP_Arming::Method method) const override { return false; };
     bool is_autopilot() const override { return false; }
 
-    void timeout_to_loiter_ms(uint32_t timeout_ms);
+    void timeout_to_mode_ms(uint32_t timeout_ms, Mode::Number mode, Mode::Number backup_mode);
+	void suppress_to_mode(Mode::Number mode);
 
 protected:
 
@@ -634,6 +635,12 @@ private:
 
     uint32_t _timeout_start;
     uint32_t _timeout_ms;
+	
+	Mode::Number _timeout_mode;
+    Mode::Number _timeout_mode_backup;
+    
+    bool _cancel_if_radio_link;
+    Mode::Number _cancel_to_mode;
 
 };
 

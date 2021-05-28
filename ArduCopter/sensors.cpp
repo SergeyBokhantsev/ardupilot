@@ -101,6 +101,7 @@ void Copter::read_rangefinder(void)
                 g2.proximity.set_rangefinder_alt(rangefinder_state.enabled, rangefinder_state.alt_healthy, rangefinder_state.alt_cm_filt.get());
 #endif
             }
+		AP_Notify::flags.rf_terr_foll = rangefinder_state.enabled;
         }
     }
 

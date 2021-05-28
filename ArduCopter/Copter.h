@@ -68,6 +68,7 @@
 #include <AC_Sprayer/AC_Sprayer.h>
 #include <AP_ADSB/AP_ADSB.h>
 #include <AP_Proximity/AP_Proximity.h>
+#include <AP_Smaud/AP_Smaud.h>
 
 // Configuration
 #include "defines.h"

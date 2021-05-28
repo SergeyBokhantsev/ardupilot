@@ -4,13 +4,8 @@
 // variables
 #ifdef USERHOOK_VARIABLES
 
-#if WII_CAMERA == 1
-WiiCamera           ircam;
-int                 WiiRange=0;
-int                 WiiRotation=0;
-int                 WiiDisplacementX=0;
-int                 WiiDisplacementY=0;
-#endif  // WII_CAMERA
+// delay to let VTX bootup
+uint8_t smaud_update_delay_sec = 5;
 
 #endif  // USERHOOK_VARIABLES
 

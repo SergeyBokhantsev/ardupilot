@@ -134,6 +134,115 @@ private:
     //typical fpv camera has 80deg vertical field of view, 16 row of chars
     static constexpr float ah_pitch_rad_to_char = 16.0f/(DEG_TO_RAD * 80);
 
+        struct {
+        bool visible;
+        uint16_t ticks_count;
+        
+        void tick()
+        {
+            if (visible) {            
+                if (ticks_count > 10) {
+                    ticks_count = 0;
+                    visible = false;
+                }            
+            } else {
+                if (ticks_count > 100) {
+                    ticks_count = 0;
+                    visible = true;
+                }
+            }
+        
+            ticks_count ++;
+        }
+    } gps_lat_lon_ctx;
+    
+    struct {
+        public:
+            float apply(float value, int averaging)
+            {
+                cumulative += value;
+                if (++counter >= averaging) {
+                    average = cumulative / counter;
+                    cumulative = counter = 0;
+                }                
+                return average;
+            }
+        
+        private:
+            float average; 
+            float cumulative;
+            uint8_t counter;                   
+    } wattage_ctx, current_ctx, current2_ctx;
+    
+    struct {
+        public:
+            bool blink(uint8_t mode, uint8_t blink_ticks)
+            {
+                if (mode != flight_mode){
+                    flight_mode = mode;
+                    remain_ticks = blink_ticks;
+                }
+                
+                bool result = remain_ticks > 0;
+                
+                if (result){
+                    remain_ticks--;
+                }
+                
+                return result;
+            }
+        
+        private:
+            uint8_t flight_mode;
+            uint8_t remain_ticks;
+    } flt_mode_ctx;
+    
+    #define AVRG_FLY_ARRAY 25
+    struct {
+        public:
+            void set(uint16_t value){
+                array[loc] = value;
+                
+                if (++loc == AVRG_FLY_ARRAY)
+                    loc = 0;                
+            }
+            
+            uint16_t get(){                
+                float result = 0;
+                for(int i=0; i<AVRG_FLY_ARRAY; ++i){
+                    result += array[i];
+                }
+                return (uint16_t)(result / AVRG_FLY_ARRAY);
+            }
+        
+        private:
+            uint16_t array[AVRG_FLY_ARRAY];
+            uint8_t loc;
+    } avrg_fly_time, avrg_fly_fwrd_time, avrg_fly_fwrd_dist;
+    
+    struct {
+        bool shall_recalculate() 
+        {
+            if (++counter >= 3) { // process every 3-rd call (~ 3Hz)
+                time_estimation = forward_estimation = keep_home_crs = blink = false;
+                gap = 0;
+                counter = 0;
+                return true;
+            }            
+            return false;
+        }
+        
+        bool time_estimation;
+        bool forward_estimation;
+        bool blink;
+        bool keep_home_crs;
+        uint16_t gap;
+        
+        private:
+        int8_t counter;
+    } estimator_ctx;
+    
+
     AP_OSD_Setting altitude{true, 23, 8};
     AP_OSD_Setting bat_volt{true, 24, 1};
     AP_OSD_Setting rssi{true, 1, 1};
@@ -187,6 +296,15 @@ private:
     AP_OSD_Setting pluscode{false, 0, 0};
 #endif
 
+// SB*
+    AP_OSD_Setting wattage{true, 5, 5};
+    AP_OSD_Setting wh_consumed{true, 5, 5};
+    AP_OSD_Setting estimation{true, 5, 5};
+    AP_OSD_Setting tilt{true, 5, 5};
+    AP_OSD_Setting board_vcc{true, 5, 5};
+	AP_OSD_Setting rangefnd{true, 5, 5};
+// *SB    
+
     // MSP OSD only
     AP_OSD_Setting sidebars{false, 0, 0};
     AP_OSD_Setting crosshair{false, 0, 0};
@@ -203,7 +321,6 @@ private:
     void draw_restvolt(uint8_t x, uint8_t y);
     void draw_rssi(uint8_t x, uint8_t y);
     void draw_current(uint8_t x, uint8_t y);
-    void draw_current(uint8_t instance, uint8_t x, uint8_t y);
     void draw_batused(uint8_t x, uint8_t y);
     void draw_batused(uint8_t instance, uint8_t x, uint8_t y);
     void draw_sats(uint8_t x, uint8_t y);
@@ -223,6 +340,16 @@ private:
 #if HAL_PLUSCODE_ENABLE
     void draw_pluscode(uint8_t x, uint8_t y);
 #endif
+
+// SB*
+    void draw_wattage(uint8_t x, uint8_t y);
+    void draw_wh_consumed(uint8_t x, uint8_t y);
+    void draw_estimation(uint8_t x, uint8_t y);
+    void draw_tilt(uint8_t x, uint8_t y);
+    void draw_board_vcc(uint8_t x, uint8_t y);
+	void draw_rangefnd(uint8_t x, uint8_t y);
+// *SB
+
     //helper functions
     void draw_speed(uint8_t x, uint8_t y, float angle_rad, float magnitude);
     void draw_distance(uint8_t x, uint8_t y, float distance);
@@ -465,11 +592,19 @@ public:
     AP_Int8 disarm_scr;
     AP_Int8 failsafe_scr;
     AP_Int32 button_delay_ms;
+	
+	AP_Int8 warn_amps;
+    AP_Int8 bat_wh;
+    AP_Int8 power_static;
 
     enum {
         OPTION_DECIMAL_PACK = 1U<<0,
         OPTION_INVERTED_WIND = 1U<<1,
         OPTION_INVERTED_AH_ROLL = 1U<<2,
+		
+		// SB
+        OPTION_SHORT_GPS_LATLON = 1U<<20,
+        OPTION_PERIODIC_GPS_LATLON = 1U<<21,
     };
 
     enum {

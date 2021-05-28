@@ -100,6 +100,10 @@ const AP_Param::GroupInfo RC_Channel::var_info[] = {
     // @User: Standard
     AP_GROUPINFO_FRAME("OPTION",  6, RC_Channel, option, 0, AP_PARAM_FRAME_COPTER|AP_PARAM_FRAME_ROVER|AP_PARAM_FRAME_PLANE),
 
+    // @Param: DEBOUNCE TIME
+    AP_GROUPINFO("DEBOUNCE",   7, RC_Channel, debounce_ms, SWITCH_DEBOUNCE_TIME_MS),
+
+
     AP_GROUPEND
 };
 
@@ -455,7 +459,7 @@ bool RC_Channel::debounce_completed(int8_t position)
         if (switch_state.debounce_position != position) {
             switch_state.debounce_position = position;
             switch_state.last_edge_time_ms = tnow_ms;
-        } else if (tnow_ms - switch_state.last_edge_time_ms >= SWITCH_DEBOUNCE_TIME_MS) {
+        } else if (tnow_ms - switch_state.last_edge_time_ms >= (uint32_t)constrain_int16(debounce_ms.get(), 10, 10000)) {
             // position estabilished; debounce completed
             switch_state.current_position = position;
             return true;

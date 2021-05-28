@@ -44,9 +44,12 @@
 #endif
 #include <AP_Filesystem/AP_Filesystem.h>
 
+#include <AP_RangeFinder/AP_RangeFinder.h>
 #include <ctype.h>
 #include <GCS_MAVLink/GCS.h>
 #include <AC_Fence/AC_Fence.h>
+
+extern const AP_HAL::HAL& hal;
 
 const AP_Param::GroupInfo AP_OSD_Screen::var_info[] = {
 
@@ -728,7 +731,7 @@ const AP_Param::GroupInfo AP_OSD_Screen::var_info[] = {
     // @DisplayName: SIDEBARS_Y
     // @Description: Vertical position on screen (MSP OSD only)
     // @Range: 0 15
-    AP_SUBGROUPINFO(sidebars, "SIDEBARS", 44, AP_OSD_Screen, AP_OSD_Setting),
+    //AP_SUBGROUPINFO(sidebars, "SIDEBARS", 44, AP_OSD_Screen, AP_OSD_Setting),
 
     // @Param: CRSSHAIR_EN
     // @DisplayName: CRSSHAIR_EN
@@ -744,7 +747,7 @@ const AP_Param::GroupInfo AP_OSD_Screen::var_info[] = {
     // @DisplayName: CRSSHAIR_Y
     // @Description: Vertical position on screen (MSP OSD only)
     // @Range: 0 15
-    AP_SUBGROUPINFO(crosshair, "CRSSHAIR", 45, AP_OSD_Screen, AP_OSD_Setting),
+    //AP_SUBGROUPINFO(crosshair, "CRSSHAIR", 45, AP_OSD_Screen, AP_OSD_Setting),
 
     // @Param: HOMEDIST_EN
     // @DisplayName: HOMEDIST_EN
@@ -760,7 +763,7 @@ const AP_Param::GroupInfo AP_OSD_Screen::var_info[] = {
     // @DisplayName: HOMEDIST_Y
     // @Description: Vertical position on screen (MSP OSD only)
     // @Range: 0 15
-    AP_SUBGROUPINFO(home_dist, "HOMEDIST", 46, AP_OSD_Screen, AP_OSD_Setting),
+    //AP_SUBGROUPINFO(home_dist, "HOMEDIST", 46, AP_OSD_Screen, AP_OSD_Setting),
 
     // @Param: HOMEDIR_EN
     // @DisplayName: HOMEDIR_EN
@@ -776,7 +779,7 @@ const AP_Param::GroupInfo AP_OSD_Screen::var_info[] = {
     // @DisplayName: HOMEDIR_Y
     // @Description: Vertical position on screen
     // @Range: 0 15
-    AP_SUBGROUPINFO(home_dir, "HOMEDIR", 47, AP_OSD_Screen, AP_OSD_Setting),
+    //AP_SUBGROUPINFO(home_dir, "HOMEDIR", 47, AP_OSD_Screen, AP_OSD_Setting),
 
     // @Param: POWER_EN
     // @DisplayName: POWER_EN
@@ -792,7 +795,7 @@ const AP_Param::GroupInfo AP_OSD_Screen::var_info[] = {
     // @DisplayName: POWER_Y
     // @Description: Vertical position on screen
     // @Range: 0 15
-    AP_SUBGROUPINFO(power, "POWER", 48, AP_OSD_Screen, AP_OSD_Setting),
+    //AP_SUBGROUPINFO(power, "POWER", 48, AP_OSD_Screen, AP_OSD_Setting),
 
     // @Param: CELLVOLT_EN
     // @DisplayName: CELL_VOLT_EN
@@ -808,7 +811,7 @@ const AP_Param::GroupInfo AP_OSD_Screen::var_info[] = {
     // @DisplayName: CELL_VOLT_Y
     // @Description: Vertical position on screen
     // @Range: 0 15
-    AP_SUBGROUPINFO(cell_volt, "CELLVOLT", 49, AP_OSD_Screen, AP_OSD_Setting),
+    //AP_SUBGROUPINFO(cell_volt, "CELLVOLT", 49, AP_OSD_Screen, AP_OSD_Setting),
 
     // @Param: BATTBAR_EN
     // @DisplayName: BATT_BAR_EN
@@ -824,7 +827,7 @@ const AP_Param::GroupInfo AP_OSD_Screen::var_info[] = {
     // @DisplayName: BATT_BAR_Y
     // @Description: Vertical position on screen
     // @Range: 0 15
-    AP_SUBGROUPINFO(batt_bar, "BATTBAR", 50, AP_OSD_Screen, AP_OSD_Setting),
+    //AP_SUBGROUPINFO(batt_bar, "BATTBAR", 50, AP_OSD_Screen, AP_OSD_Setting),
 
     // @Param: ARMING_EN
     // @DisplayName: ARMING_EN
@@ -840,7 +843,7 @@ const AP_Param::GroupInfo AP_OSD_Screen::var_info[] = {
     // @DisplayName: ARMING_Y
     // @Description: Vertical position on screen
     // @Range: 0 15
-    AP_SUBGROUPINFO(arming, "ARMING", 51, AP_OSD_Screen, AP_OSD_Setting),
+    //AP_SUBGROUPINFO(arming, "ARMING", 51, AP_OSD_Screen, AP_OSD_Setting),
 #endif //HAL_MSP_ENABLED
 
 #if HAL_PLUSCODE_ENABLE
@@ -976,6 +979,15 @@ const AP_Param::GroupInfo AP_OSD_Screen::var_info[] = {
     // @Description: Vertical position on screen
     // @Range: 0 15
     AP_SUBGROUPINFO(fence, "FENCE", 59, AP_OSD_Screen, AP_OSD_Setting),
+	
+	// SB Custom (MSP disabled so 44-51 are free)
+    AP_SUBGROUPINFO(wattage, "POWER_W", 44, AP_OSD_Screen, AP_OSD_Setting),
+    AP_SUBGROUPINFO(wh_consumed, "USED_WH", 45, AP_OSD_Screen, AP_OSD_Setting),
+    AP_SUBGROUPINFO(estimation, "ESTIMAT", 46, AP_OSD_Screen, AP_OSD_Setting),
+    AP_SUBGROUPINFO(tilt, "TILT", 47, AP_OSD_Screen, AP_OSD_Setting),
+    AP_SUBGROUPINFO(board_vcc, "BRD_VCC", 48, AP_OSD_Screen, AP_OSD_Setting),
+    AP_SUBGROUPINFO(rangefnd, "RANGEFND", 49, AP_OSD_Screen, AP_OSD_Setting),
+	
     AP_GROUPEND
 };
 
@@ -1075,6 +1087,8 @@ AP_OSD_Screen::AP_OSD_Screen()
 #define SYM_FENCE_ENABLED 0xF5
 #define SYM_FENCE_DISABLED 0xF6
 
+#define SYM_WATT 0xAE
+#define SYM_WATHR 0xAB
 
 void AP_OSD_AbstractScreen::set_backend(AP_OSD_Backend *_backend)
 {
@@ -1252,39 +1266,60 @@ void AP_OSD_Screen::draw_rssi(uint8_t x, uint8_t y)
     }
 }
 
-void AP_OSD_Screen::draw_current(uint8_t instance, uint8_t x, uint8_t y)
+void AP_OSD_Screen::draw_current(uint8_t x, uint8_t y)
 {
+    AP_BattMonitor &battery = AP::battery();
     float amps;
-    if (!AP::battery().current_amps(amps, instance)) {
-        osd->avg_current_a = 0;
+    if (!battery.current_amps(amps)) {        
+        amps = 0;
     }
-    //filter current and display with autoranging for low values
-    osd->avg_current_a= osd->avg_current_a + (amps - osd->avg_current_a) * 0.33;
-    if (osd->avg_current_a < 10.0) {
-        backend->write(x, y, false, "%2.2f%c", osd->avg_current_a, SYM_AMP);
+    
+    if (amps > 5) // display averaged value at lower refresh rate (5 cycles averaging rate i.e. 2 Hz screen update)
+        amps = current_ctx.apply(amps, 5);
+    else // do average, but display a momentary value
+        current_ctx.apply(amps, 5);
+    
+    if (amps < 10.0) {
+        backend->write(x, y, amps >= osd->warn_amps, "%2.2f%c", amps, SYM_AMP);
     }
     else {
-        backend->write(x, y, false, "%2.1f%c", osd->avg_current_a, SYM_AMP);
+        backend->write(x, y, amps >= osd->warn_amps, "%2.1f%c", amps, SYM_AMP);
     }
 }
 
-void AP_OSD_Screen::draw_current(uint8_t x, uint8_t y)
+void AP_OSD_Screen::draw_current2(uint8_t x, uint8_t y)
 {
-    draw_current(0, x, y);
+    AP_BattMonitor &battery = AP::battery();
+    float amps;
+    if (!battery.current_amps(amps, 1)) {        
+        amps = 0;
+    }
+    
+    if (amps > 5) // display averaged value at lower refresh rate (5 cycles averaging rate i.e. 2 Hz screen update)
+        amps = current2_ctx.apply(amps, 5);
+    else // do average, but display a momentary value
+        current2_ctx.apply(amps, 5);
+    
+    if (amps < 10.0) {
+        backend->write(x, y, amps >= osd->warn_amps, "%2.2f%c", amps, SYM_AMP);
+    }
+    else {
+        backend->write(x, y, amps >= osd->warn_amps, "%2.1f%c", amps, SYM_AMP);
+    }
 }
 
 void AP_OSD_Screen::draw_fltmode(uint8_t x, uint8_t y)
 {
-    AP_Notify * notify = AP_Notify::get_singleton();
     char arm;
     if (AP_Notify::flags.armed) {
         arm = SYM_ARMED;
     } else {
         arm = SYM_DISARMED;
     }
-    if (notify) {
-        backend->write(x, y, false, "%s%c", notify->get_flight_mode_str(), arm);
-    }
+	
+    bool blink = flt_mode_ctx.blink(AP_Notify::flags.flight_mode, 30);
+    
+    backend->write(x, y, blink, "%s%c", AP::notify().get_flight_mode_str(), arm);
 }
 
 void AP_OSD_Screen::draw_sats(uint8_t x, uint8_t y)
@@ -1574,7 +1609,6 @@ void AP_OSD_Screen::draw_vspeed(uint8_t x, uint8_t y)
 {
     Vector3f v;
     float vspd;
-    float vs_scaled;
     AP_AHRS &ahrs = AP::ahrs();
     WITH_SEMAPHORE(ahrs.get_semaphore());
     if (ahrs.get_velocity_NED(v)) {
@@ -1584,23 +1618,33 @@ void AP_OSD_Screen::draw_vspeed(uint8_t x, uint8_t y)
         WITH_SEMAPHORE(baro.get_semaphore());
         vspd = baro.get_climb_rate();
     }
+    
     char sym;
-    if (vspd > 3.0f) {
-        sym = SYM_UP_UP;
-    } else if (vspd >=0.0f) {
-        sym = SYM_UP;
-    } else if (vspd >= -3.0f) {
-        sym = SYM_DOWN;
-    } else {
-        sym = SYM_DOWN_DOWN;
-    }
-    vs_scaled = u_scale(VSPEED, fabsf(vspd));
-    if ((osd->units != AP_OSD::UNITS_AVIATION) && (vs_scaled < 9.95f)) {
-        backend->write(x, y, false, "%c%.1f%c", sym, (float)vs_scaled, u_icon(VSPEED));
-    } else {
-        const char *fmt = osd->units == AP_OSD::UNITS_AVIATION ? "%c%4d%c" : "%c%2d%c";
-        backend->write(x, y, false, fmt, sym, (int)roundf(vs_scaled), u_icon(VSPEED));
-    }
+    if (vspd < -4.8f)
+        sym = 103; 
+    else if (vspd < -3.6f)
+        sym = 104; 
+    else if (vspd < -2.4f)
+        sym = 105; 
+    else if (vspd < -1.2f)
+        sym = 106; 
+    else if (vspd < -0.25f)
+        sym = 107; 
+    else if (vspd <= 0.25f)
+        sym = 108;
+    else if (vspd < 1.2f)
+        sym = 109;
+    else if (vspd < 2.4f)
+        sym = 110;
+    else if (vspd < 3.6f)
+        sym = 111;
+    else if (vspd < 4.8f)
+        sym = 96;
+    else
+        sym = 97;
+    
+    vspd = fabsf(vspd);    
+    backend->write(x, y, vspd > 3.0f, "%c%2.1f%c", sym, u_scale(VSPEED, vspd), u_icon(VSPEED));
 }
 
 #if HAL_WITH_ESC_TELEM
@@ -1639,6 +1683,10 @@ void AP_OSD_Screen::draw_blh_amps(uint8_t x, uint8_t y)
 
 void AP_OSD_Screen::draw_gps_latitude(uint8_t x, uint8_t y)
 {
+	if (check_option(AP_OSD::OPTION_PERIODIC_GPS_LATLON) && !gps_lat_lon_ctx.visible) {
+        return;
+    }
+	
     AP_GPS & gps = AP::gps();
     const Location &loc = gps.location();   // loc.lat and loc.lng
     int32_t dec_portion, frac_portion;
@@ -1647,11 +1695,19 @@ void AP_OSD_Screen::draw_gps_latitude(uint8_t x, uint8_t y)
     dec_portion = loc.lat / 10000000L;
     frac_portion = abs_lat - labs(dec_portion)*10000000UL;
 
-    backend->write(x, y, false, "%c%4ld.%07ld", SYM_GPS_LAT, (long)dec_portion,(long)frac_portion);
+    if (check_option(AP_OSD::OPTION_SHORT_GPS_LATLON)) {
+        backend->write(x, y, false, ".%07ld", (long)frac_portion);
+    } else {
+        backend->write(x, y, false, "%c%4ld.%07ld", SYM_GPS_LAT, (long)dec_portion,(long)frac_portion);
+    }
 }
 
 void AP_OSD_Screen::draw_gps_longitude(uint8_t x, uint8_t y)
 {
+    if (check_option(AP_OSD::OPTION_PERIODIC_GPS_LATLON) && !gps_lat_lon_ctx.visible) {
+        return;
+    }
+	
     AP_GPS & gps = AP::gps();
     const Location &loc = gps.location();   // loc.lat and loc.lng
     int32_t dec_portion, frac_portion;
@@ -1660,7 +1716,11 @@ void AP_OSD_Screen::draw_gps_longitude(uint8_t x, uint8_t y)
     dec_portion = loc.lng / 10000000L;
     frac_portion = abs_lon - labs(dec_portion)*10000000UL;
 
-    backend->write(x, y, false, "%c%4ld.%07ld", SYM_GPS_LONG, (long)dec_portion,(long)frac_portion);
+    if (check_option(AP_OSD::OPTION_SHORT_GPS_LATLON)) {
+        backend->write(x, y, false, ".%07ld", (long)frac_portion);
+    } else {    
+        backend->write(x, y, false, "%c%4ld.%07ld", SYM_GPS_LONG, (long)dec_portion,(long)frac_portion);
+    }
 }
 
 void AP_OSD_Screen::draw_roll_angle(uint8_t x, uint8_t y)
@@ -1744,7 +1804,11 @@ void AP_OSD_Screen::draw_stat(uint8_t x, uint8_t y)
 void AP_OSD_Screen::draw_dist(uint8_t x, uint8_t y)
 {
     backend->write(x, y, false, "%c", SYM_DIST);
-    draw_distance(x+1, y, osd->last_distance_m);
+    
+    float distance_scaled = u_scale(DISTANCE_LONG, osd->last_distance_m);
+    char unit_icon= u_icon(DISTANCE_LONG);
+    
+    backend->write(x, y, false, "%2.1f%c", distance_scaled, unit_icon);
 }
 
 void  AP_OSD_Screen::draw_flightime(uint8_t x, uint8_t y)
@@ -1752,7 +1816,8 @@ void  AP_OSD_Screen::draw_flightime(uint8_t x, uint8_t y)
     AP_Stats *stats = AP::stats();
     if (stats) {
         uint32_t t = stats->get_flight_time_s();
-        backend->write(x, y, false, "%c%3u:%02u", SYM_FLY, t/60, t%60);
+        float f = (float)(t/60) + ((float)(t%60) / 100.0f);
+        backend->write(x, y, false, "%2.2f", f);
     }
 }
 
@@ -1920,11 +1985,6 @@ void AP_OSD_Screen::draw_callsign(uint8_t x, uint8_t y)
 #endif
 }
 
-void AP_OSD_Screen::draw_current2(uint8_t x, uint8_t y)
-{
-    draw_current(1, x, y);
-}
-
 void AP_OSD_Screen::draw_vtx_power(uint8_t x, uint8_t y)
 {
     AP_VideoTX *vtx = AP_VideoTX::get_singleton();
@@ -1967,6 +2027,179 @@ void AP_OSD_Screen::draw_fence(uint8_t x, uint8_t y)
     }
 }
 
+void AP_OSD_Screen::draw_wattage(uint8_t x, uint8_t y)
+{    
+    AP_BattMonitor &battery = AP::battery();
+    float amps;
+    if (!battery.current_amps(amps)) {
+        amps = 0;
+    }
+    float v = battery.voltage();
+    // 5 cycles averaging rate (i.e. 2 Hz screen update)
+    int16_t pwr_average = (int16_t)wattage_ctx.apply(v * amps, 5);    
+    backend->write(x, y, false, "%4d%c", pwr_average, SYM_WATT);
+}
+
+void AP_OSD_Screen::draw_wh_consumed(uint8_t x, uint8_t y)
+{
+    AP_BattMonitor &battery = AP::battery();
+    float wh = 0;
+    bool blink = !battery.consumed_wh(wh);
+    
+    backend->write(x, y, blink, "%3.1f%c", wh, SYM_WATHR);
+}
+
+void AP_OSD_Screen::draw_board_vcc(uint8_t x, uint8_t y)
+{
+    float vcc = hal.analogin->board_voltage();
+    
+    if (vcc < 4.9f || vcc > 5.1f) {
+        backend->write(x, y, false, "%1.1f%c", vcc, SYM_VOLT);
+    }
+}
+
+void AP_OSD_Screen::draw_tilt(uint8_t x, uint8_t y)
+{
+    AP_AHRS &ahrs = AP::ahrs();
+    Vector2f tilt_vector = Vector2f((float)ahrs.roll_sensor, (float)ahrs.pitch_sensor);
+    char arrow = SYM_ARROW_START;
+    int32_t angle = wrap_360_cd(DEGX100 * atan2f(tilt_vector.y, tilt_vector.x) + 9000);
+    int32_t interval = 36000 / SYM_ARROW_COUNT;
+    arrow = SYM_ARROW_START + ((angle + interval / 2) / interval) % SYM_ARROW_COUNT;
+    backend->write(x, y, false, "%c%2d%c", arrow, (uint8_t)(tilt_vector.length() / 100.0f), SYM_DEGR);
+}
+
+void AP_OSD_Screen::draw_estimation(uint8_t x, uint8_t y)
+{    
+    if (estimator_ctx.shall_recalculate()) 
+    {        
+        AP_BattMonitor &battery = AP::battery();
+        
+        float consumed_wh;
+        if (!battery.consumed_wh(consumed_wh)) {
+            consumed_wh = 0;
+        }
+        
+        float remain_wh = (float)(osd->bat_wh) - consumed_wh;
+         
+        if (remain_wh > 0.0f){
+            float amps;
+            if (!battery.current_amps(amps)) {
+                amps = 0;
+            }            
+            float power_watt = amps * battery.voltage();
+             
+            if (power_watt > 15.0f){
+                
+                float power_static = (float)osd->power_static;
+            
+                if (power_static > 0) {
+                    // If overconsumption then decrease power by average with 2:1 ratio
+                    if (power_watt > power_static) {
+                        power_watt = (power_watt * 2 + power_static) / 3.0f;
+                    }
+                    // If underconsumption then increase power with 1:1 ratio
+                    else {
+                        power_watt = (power_watt + power_static) / 2.0f;
+                    }
+                }
+                
+                float fly_time = remain_wh / power_watt * 3600.0f;
+                avrg_fly_time.set((uint16_t)(fly_time / 60.0f));
+                estimator_ctx.time_estimation = true;
+                 
+                AP_AHRS &ahrs = AP::ahrs();
+                Vector2f spdv = ahrs.groundspeed_vector();
+                float spd = spdv.length();
+                Location loc;
+                 
+                if (spd > 1.0f && ahrs.get_position(loc) && ahrs.home_is_set()) {
+                    const Location &home_loc = ahrs.get_home();
+                    float home_dst = home_loc.get_distance(loc);
+                    float remain_dist = fly_time * spd;
+                    
+                    estimator_ctx.forward_estimation = true;
+                    float forward_dist = 0;
+                    float forward_time = 0;
+     
+                    if (remain_dist > home_dst){
+                        
+                        float spd_bearing = wrap_360_cd(DEGX100 * atan2f(spdv.y, spdv.x));
+                        float home_bearing = (float)loc.get_bearing_to(home_loc); 
+                        float home_angle = abs(home_bearing - spd_bearing) / 100.0f;
+                      
+                        if (home_angle > 180.0f) {
+                            home_angle = 360.0f - home_angle;
+                        }
+     
+                        float denominator = 2 * home_dst * cosf(radians(home_angle)) - 2 * remain_dist;
+                         
+                        if (denominator > 0.0f || denominator < 0.0f) {
+                            forward_dist = (home_dst*home_dst - remain_dist*remain_dist) / denominator;
+                            forward_time = forward_dist / spd;
+                        }
+                        
+                        avrg_fly_fwrd_time.set((uint16_t)(forward_time / 60.0f));
+                        avrg_fly_fwrd_dist.set((uint16_t)(forward_dist / 50.0f));
+                        
+                        // blink when available travel distantion is less that 10% of the actual home distantion
+                        if (home_dst > 0.0f && forward_dist / home_dst < 0.1f){
+                            estimator_ctx.blink = true;                       
+                        } 
+                        // detect available forward_dist is close to remain_dist that mean we're heading home and remaining time is only for RTH
+                        else if (home_dst > 50.0f && forward_dist / remain_dist > 0.9f) {
+                            estimator_ctx.keep_home_crs = true;
+                        }
+                    }
+                    else {
+                        estimator_ctx.gap = (uint16_t)((home_dst - remain_dist) / 20.0f) * 20;
+                    }               
+                }
+                else{
+                    avrg_fly_fwrd_time.set(0);
+                    avrg_fly_fwrd_dist.set(0);
+                }
+            }
+        }
+    }    
+    
+    if (estimator_ctx.keep_home_crs){
+        backend->write(x, y, true, "/KH %2d%c", avrg_fly_time.get(), SYM_FLY);
+    }
+    else if (estimator_ctx.gap > 0){
+        backend->write(x, y, true, "/GP %2.1f%c", (float)estimator_ctx.gap / 1000.0f, SYM_KM);
+    }
+    else if (estimator_ctx.forward_estimation){
+        backend->write(x, y, estimator_ctx.blink, "/%2.1f%c", (float)(avrg_fly_fwrd_dist.get() * 50) / 1000.0f, SYM_KM);
+    }
+    else if (estimator_ctx.time_estimation) {
+        backend->write(x, y, false, "/%3d%c", avrg_fly_time.get(), SYM_FLY);
+    }     
+}
+
+void AP_OSD_Screen::draw_rangefnd(uint8_t x, uint8_t y)
+{
+    RangeFinder* rf = RangeFinder::get_singleton();
+    
+    if (AP_Notify::flags.rf_terr_foll)
+    {
+        // Terrain follow enabled
+        backend->write(x + 2, y + 1, true, "%c", 0xAF);
+    }
+    
+    if (rf->has_orientation(ROTATION_PITCH_270)) {      
+        RangeFinder::Status status = rf->status_orient(ROTATION_PITCH_270);
+        if (status == RangeFinder::Status::Good) {
+            float distance = rf->distance_cm_orient(ROTATION_PITCH_270) * 0.01f;
+            //uint16_t temperature = rf->voltage_mv_orient(ROTATION_PITCH_270);
+            backend->write(x, y, false, "%2.1f%c", distance, SYM_M);
+        } else if (status == RangeFinder::Status::NotConnected) {
+            backend->write(x, y, true, "L NC");
+        } else if (status == RangeFinder::Status::NoData) {
+            backend->write(x, y, true, "L ND");
+        }        
+    }
+}
 
 #define DRAW_SETTING(n) if (n.enabled) draw_ ## n(n.xpos, n.ypos)
 
@@ -2032,6 +2265,16 @@ void AP_OSD_Screen::draw(void)
 #if HAL_PLUSCODE_ENABLE
     DRAW_SETTING(pluscode);
 #endif
+
+// *SB
+    DRAW_SETTING(wattage);
+    DRAW_SETTING(wh_consumed);
+    DRAW_SETTING(estimation);
+    DRAW_SETTING(tilt);
+    DRAW_SETTING(board_vcc);
+    DRAW_SETTING(rangefnd);
+// SB*
+
     DRAW_SETTING(dist);
     DRAW_SETTING(stat);
     DRAW_SETTING(climbeff);

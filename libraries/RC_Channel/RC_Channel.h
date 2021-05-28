@@ -320,6 +320,7 @@ private:
 
     AP_Int8     reversed;
     AP_Int16    dead_zone;
+	AP_Int16    debounce_ms;
 
     ChannelType type_in;
     int16_t     high_in;

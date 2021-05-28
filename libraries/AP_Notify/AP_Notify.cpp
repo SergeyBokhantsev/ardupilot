@@ -397,6 +397,9 @@ void AP_Notify::update(void)
 // handle a LED_CONTROL message
 void AP_Notify::handle_led_control(const mavlink_message_t &msg)
 {
+	if (AP_Notify::flags.leds_disabled)
+        return;
+	
     for (uint8_t i = 0; i < _num_devices; i++) {
         if (_devices[i] != nullptr) {
             _devices[i]->handle_led_control(msg);

@@ -211,6 +211,12 @@ const AP_Param::GroupInfo AP_OSD::var_info[] = {
     // @Path: AP_OSD_ParamScreen.cpp
     AP_SUBGROUPINFO(param_screen[1], "6_", 22, AP_OSD, AP_OSD_ParamScreen),
 #endif
+
+    //SB Custom
+    AP_GROUPINFO("_W_AMPS", 27, AP_OSD, warn_amps, 15),
+    AP_GROUPINFO("_BAT_WH", 28, AP_OSD, bat_wh, 0), 
+    AP_GROUPINFO("_STA_PWR", 29, AP_OSD, power_static, 0), 
+
     AP_GROUPEND
 };
 

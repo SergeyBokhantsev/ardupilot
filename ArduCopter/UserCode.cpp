@@ -39,23 +39,45 @@ void Copter::userhook_SlowLoop()
 #ifdef USERHOOK_SUPERSLOWLOOP
 void Copter::userhook_SuperSlowLoop()
 {
-    // put your 1Hz code here
+    if (smaud_update_delay_sec == 0)
+    {
+        if (get_likely_flying())
+        {
+            Location loc;
+            if (ahrs.get_position(loc))
+            {
+                const Location &home_loc = ahrs.get_home();
+                if (home_loc.lat != 0 || home_loc.lng != 0)
+                {
+                    g2.smaud.update(home_loc.get_distance(loc));
+                }
+            }
+        }
+        else
+            g2.smaud.update(0);
+    }
+    else
+        smaud_update_delay_sec--;
 }
 #endif
 
 #ifdef USERHOOK_AUXSWITCH
+
+// (CHx_OPT = 47)
 void Copter::userhook_auxSwitch1(uint8_t ch_flag)
 {
-    // put your aux switch #1 handler here (CHx_OPT = 47)
+    g2.user_parameters.doSwitch(1, ch_flag, g2.smaud);
 }
 
+// (CHx_OPT = 48)
 void Copter::userhook_auxSwitch2(uint8_t ch_flag)
 {
-    // put your aux switch #2 handler here (CHx_OPT = 48)
+    g2.user_parameters.doSwitch(2, ch_flag, g2.smaud);
 }
 
+// (CHx_OPT = 49)
 void Copter::userhook_auxSwitch3(uint8_t ch_flag)
-{
-    // put your aux switch #3 handler here (CHx_OPT = 49)
+{    
+    g2.user_parameters.doSwitch(3, ch_flag, g2.smaud);
 }
 #endif

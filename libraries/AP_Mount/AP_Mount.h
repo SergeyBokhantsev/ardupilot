@@ -176,6 +176,9 @@ protected:
         AP_Int16        _pan_angle_min;     // min pan in 0.01 degree units
         AP_Int16        _pan_angle_max;     // max pan in 0.01 degree units
 
+		// SB
+        AP_Int8         _gear_ratio;        // transmission ratio percents
+
         AP_Vector3f     _retract_angles;    // retracted position for mount, vector.x = roll vector.y = tilt, vector.z=pan
         AP_Vector3f     _neutral_angles;    // neutral position for mount, vector.x = roll vector.y = tilt, vector.z=pan
 

@@ -214,6 +214,7 @@ const AP_Param::GroupInfo AP_Mount::var_info[] = {
     // 23 formerly _K_RATE
 
     // 24 is AVAILABLE
+    AP_GROUPINFO("_GEAR_RATI", 24, AP_Mount, state[0]._gear_ratio, 100),
 
 #if AP_MOUNT_MAX_INSTANCES > 1
     // @Param: 2_DEFLT_MODE

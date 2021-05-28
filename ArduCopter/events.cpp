@@ -299,13 +299,26 @@ void Copter::gpsglitch_check()
 //  this is always called from a failsafe so we trigger notification to pilot
 void Copter::set_mode_RTL_or_land_with_pause(ModeReason reason)
 {
-    // attempt to switch to RTL, if this fails then switch to Land
-    if (!set_mode(Mode::Number::RTL, reason)) {
-        // set mode to land will trigger mode change notification to pilot
-        set_mode_land_with_pause(reason);
-    } else {
+	Mode::Number original_mode = flightmode->mode_number();
+	
+    bool is_smart_mode = original_mode == Mode::Number::LOITER 
+                      || original_mode == Mode::Number::POSHOLD 
+                      || original_mode == Mode::Number::ALT_HOLD;
+    
+    if (reason == ModeReason::RADIO_FAILSAFE && is_smart_mode && RTL_WITH_DELAY_MS > 0 && set_mode(Mode::Number::BRAKE, reason)){
         // alert pilot to mode change
         AP_Notify::events.failsafe_mode_change = 1;
+        // schedule a transition to RTL or Land
+        copter.mode_brake.timeout_to_mode_ms(RTL_WITH_DELAY_MS, Mode::Number::RTL, Mode::Number::LAND);
+        copter.mode_brake.suppress_to_mode(original_mode);
+    }
+    else if (set_mode(Mode::Number::RTL, reason)){
+        // alert pilot to mode change
+        AP_Notify::events.failsafe_mode_change = 1;
+    }
+    else {
+        // set mode to land will trigger mode change notification to pilot
+        set_mode_land_with_pause(reason);
     }
 }
 

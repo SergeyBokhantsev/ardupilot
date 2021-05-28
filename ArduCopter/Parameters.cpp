@@ -1049,12 +1049,18 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     AP_GROUPINFO("RTL_OPTIONS", 43, ParametersG2, rtl_options, 0),
 #endif
 
+#if SMARTAUDIO_ENABLED == ENABLED
+    // @Group: SMAUD
+    // @Path: ../libraries/AP_SmartAudio/AP_SmartAudio.cpp
+    AP_SUBGROUPINFO(smaud, "SMAUD_", 44, ParametersG2, AP_Smaud),
+#endif
+
     // @Param: FLIGHT_OPTIONS
     // @DisplayName: Flight mode options
     // @Description: Flight mode specific options
     // @Bitmask: 0:Disable thrust loss check, 1:Disable yaw imbalance warning
     // @User: Advanced
-    AP_GROUPINFO("FLIGHT_OPTIONS", 44, ParametersG2, flight_options, 0),
+    AP_GROUPINFO("FLIGHT_OPTIONS", 45, ParametersG2, flight_options, 0),
 
     AP_GROUPEND
 };
@@ -1087,6 +1093,9 @@ ParametersG2::ParametersG2(void)
 #endif
 #if AUTOTUNE_ENABLED == ENABLED
     ,autotune_ptr(&copter.mode_autotune.autotune)
+#endif
+#if SMARTAUDIO_ENABLED == ENABLED
+    ,smaud()
 #endif
 #if MODE_SYSTEMID_ENABLED == ENABLED
     ,mode_systemid_ptr(&copter.mode_systemid)

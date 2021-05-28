@@ -106,6 +106,12 @@ public:
         bool powering_off;        // true when the vehicle is powering off
         bool video_recording;     // true when the vehicle is recording video
         bool temp_cal_running;    // true if a temperature calibration is running
+		
+		uint8_t vtx_channel;      // VTX channel number
+        uint8_t vtx_power;        // VTX power
+        bool rf_terr_foll;        // Rangefinder terrain following enabled
+        uint8_t cruise_ctrl_mode; // Cruise control mode
+        bool leds_disabled;       // Disable LEDs
     };
 
     /// notify_events_type - bitmask of active events.

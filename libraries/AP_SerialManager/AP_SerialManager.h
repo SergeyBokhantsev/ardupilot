@@ -150,7 +150,8 @@ public:
         SerialProtocol_AirSpeed = 34,
         SerialProtocol_ADSB = 35,
         SerialProtocol_AHRS = 36,
-        SerialProtocol_SmartAudio = 37,
+		SerialProtocol_Smaud = 68,    				   // SB SmartAudio
+        SerialProtocol_SmartAudio = 37,		
         SerialProtocol_NumProtocols                    // must be the last value
     };
 

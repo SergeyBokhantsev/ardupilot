@@ -456,6 +456,11 @@
 # define LAND_DETECTOR_ACCEL_MAX            1.0f    // vehicle acceleration must be under 1m/s/s
 #endif
 
+// SB: RTL With Delay
+#ifndef RTL_WITH_DELAY_MS
+ # define RTL_WITH_DELAY_MS        15000    // default delay (in milliseconds) when a RTL-with-delay is triggered during a failsafe event
+#endif
+
 //////////////////////////////////////////////////////////////////////////////
 // CAMERA TRIGGER AND CONTROL
 //
@@ -753,6 +758,10 @@
 
 #ifndef OSD_ENABLED
  #define OSD_ENABLED DISABLED
+#endif
+
+#ifndef SMARTAUDIO_ENABLED
+ # define SMARTAUDIO_ENABLED ENABLED
 #endif
 
 #ifndef HAL_FRAME_TYPE_DEFAULT
