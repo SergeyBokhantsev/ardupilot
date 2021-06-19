@@ -39,6 +39,7 @@
 #include <AP_OLC/AP_OLC.h>
 #include <AP_VideoTX/AP_VideoTX.h>
 #include <AP_Terrain/AP_Terrain.h>
+#include <AP_RangeFinder/AP_RangeFinder.h>
 #if APM_BUILD_TYPE(APM_BUILD_Rover)
 #include <AP_WindVane/AP_WindVane.h>
 #endif
@@ -156,7 +157,7 @@ const AP_Param::GroupInfo AP_OSD_Screen::var_info[] = {
 
     // @Param: SATS_EN
     // @DisplayName: SATS_EN
-    // @Description: Displays number of acquired sattelites
+    // @Description: Displays number of acquired satellites
     // @Values: 0:Disabled,1:Enabled
 
     // @Param: SATS_X
@@ -987,7 +988,21 @@ const AP_Param::GroupInfo AP_OSD_Screen::var_info[] = {
     AP_SUBGROUPINFO(board_vcc, "BRD_VCC", 48, AP_OSD_Screen, AP_OSD_Setting),
     AP_SUBGROUPINFO(rangefnd, "RANGEFND", 49, AP_OSD_Screen, AP_OSD_Setting),
 	
-    AP_GROUPEND
+    // @Param: RNGF_EN
+    // @DisplayName: RNGF_EN
+    // @Description: Displays a rangefinder's distance in cm
+    // @Values: 0:Disabled,1:Enabled
+
+    // @Param: RNGF_X
+    // @DisplayName: RNGF_X
+    // @Description: Horizontal position on screen
+    // @Range: 0 29
+
+    // @Param: RNGF_Y
+    // @DisplayName: RNGF_Y
+    // @Description: Vertical position on screen
+    // @Range: 0 15
+    AP_SUBGROUPINFO(rngf, "RNGF", 60, AP_OSD_Screen, AP_OSD_Setting),    AP_GROUPEND
 };
 
 // constructor
@@ -1085,6 +1100,7 @@ AP_OSD_Screen::AP_OSD_Screen()
 #define SYM_TERALT 0xEF
 #define SYM_FENCE_ENABLED 0xF5
 #define SYM_FENCE_DISABLED 0xF6
+#define SYM_RNGFD     0xF7
 
 #define SYM_WATT 0xAE
 #define SYM_WATHR 0xAB
@@ -1655,7 +1671,7 @@ void AP_OSD_Screen::draw_blh_temp(uint8_t x, uint8_t y)
         return;
     }
 
-    uint8_t esc_temp = uint8_t(etemp);
+    uint8_t esc_temp = uint8_t(etemp / 100);
     backend->write(x, y, false, "%3d%c", (int)u_scale(TEMPERATURE, esc_temp), u_icon(TEMPERATURE));
 }
 
@@ -1666,7 +1682,9 @@ void AP_OSD_Screen::draw_blh_rpm(uint8_t x, uint8_t y)
     if (!AP::esc_telem().get_rpm(0, rpm)) {
         return;
     }
-    backend->write(x, y, false, "%3.1f%c%c", uint16_t(rpm) * 0.001f, SYM_KILO, SYM_RPM);
+    float krpm = rpm * 0.001f;
+    const char *format = krpm < 9.995 ? "%.2f%c%c" : (krpm < 99.95 ? "%.1f%c%c" : "%.0f%c%c");
+    backend->write(x, y, false, format, krpm, SYM_KILO, SYM_RPM);
 }
 
 void AP_OSD_Screen::draw_blh_amps(uint8_t x, uint8_t y)
@@ -1938,7 +1956,7 @@ void AP_OSD_Screen::draw_clk(uint8_t x, uint8_t y)
     uint8_t hour, min, sec;
     uint16_t ms;
     if (!rtc.get_local_time(hour, min, sec, ms)) {
-    backend->write(x, y, false, "%c--:--%", SYM_CLK);
+    backend->write(x, y, false, "%c--:--", SYM_CLK);
     } else {
     backend->write(x, y, false, "%c%02u:%02u", SYM_CLK, hour, min);
     }
@@ -1954,7 +1972,7 @@ void AP_OSD_Screen::draw_pluscode(uint8_t x, uint8_t y)
         backend->write(x, y, false, "--------+--");
     } else {
         AP_OLC::olc_encode(loc.lat, loc.lng, 10, buff, sizeof(buff));
-        backend->write(x, y, false, buff);
+        backend->write(x, y, false, "%s", buff);
     }
 }
 
@@ -1978,7 +1996,7 @@ void AP_OSD_Screen::draw_callsign(uint8_t x, uint8_t y)
         }
     }
     if (callsign_data.str != nullptr) {
-        backend->write(x, y, false, callsign_data.str);
+        backend->write(x, y, false, "%s", callsign_data.str);
     }
 #endif
 }
@@ -2036,6 +2054,19 @@ void AP_OSD_Screen::draw_wattage(uint8_t x, uint8_t y)
     // 5 cycles averaging rate (i.e. 2 Hz screen update)
     int16_t pwr_average = (int16_t)wattage_ctx.apply(v * amps, 5);    
     backend->write(x, y, false, "%4d%c", pwr_average, SYM_WATT);
+}
+
+void AP_OSD_Screen::draw_rngf(uint8_t x, uint8_t y)
+{
+    RangeFinder *rangefinder = RangeFinder::get_singleton();
+    if (rangefinder == nullptr) {
+       return;
+    }
+    if (rangefinder->status_orient(ROTATION_PITCH_270) <= RangeFinder::Status::NoData) {
+        backend->write(x, y, false, "%cNO DATA", SYM_RNGFD);
+    } else {
+        backend->write(x, y, false, "%c%2.2f%c", SYM_RNGFD, u_scale(DISTANCE, (rangefinder->distance_cm_orient(ROTATION_PITCH_270) * 0.01f)), u_icon(DISTANCE));
+    }
 }
 
 void AP_OSD_Screen::draw_wh_consumed(uint8_t x, uint8_t y)
@@ -2220,6 +2251,7 @@ void AP_OSD_Screen::draw(void)
     DRAW_SETTING(hgt_abvterr);
 #endif
 
+    DRAW_SETTING(rngf);
     DRAW_SETTING(waypoint);
     DRAW_SETTING(xtrack_error);
     DRAW_SETTING(bat_volt);
@@ -2252,7 +2284,7 @@ void AP_OSD_Screen::draw(void)
     DRAW_SETTING(clk);
     DRAW_SETTING(vtx_power);
 
-#ifdef HAVE_AP_BLHELI_SUPPORT
+#if HAL_WITH_ESC_TELEM
     DRAW_SETTING(blh_temp);
     DRAW_SETTING(blh_rpm);
     DRAW_SETTING(blh_amps);
