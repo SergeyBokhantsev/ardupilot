@@ -293,9 +293,7 @@ private:
     AP_OSD_Setting hgt_abvterr{false, 23, 7};
     AP_OSD_Setting fence{false, 14, 9};
     AP_OSD_Setting rngf{false, 0, 0};
-#if HAL_PLUSCODE_ENABLE
     AP_OSD_Setting pluscode{false, 0, 0};
-#endif
 
 // SB*
     AP_OSD_Setting wattage{true, 5, 5};
@@ -338,9 +336,7 @@ private:
     void draw_aspd1(uint8_t x, uint8_t y);
     void draw_aspd2(uint8_t x, uint8_t y);
     void draw_vspeed(uint8_t x, uint8_t y);
-#if HAL_PLUSCODE_ENABLE
     void draw_pluscode(uint8_t x, uint8_t y);
-#endif
 
 // SB*
     void draw_wattage(uint8_t x, uint8_t y);

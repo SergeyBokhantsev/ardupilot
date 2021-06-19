@@ -20,12 +20,6 @@
 #include <AP_HAL/AP_HAL.h>
 #include <AP_HAL/AP_HAL_Boards.h>
 
-#ifndef HAL_PLUSCODE_ENABLE
-#define HAL_PLUSCODE_ENABLE !HAL_MINIMIZE_FEATURES && BOARD_FLASH_SIZE > 1024
-#endif
-
-
-#if HAL_PLUSCODE_ENABLE
 class AP_OLC
 {
 public:
@@ -51,5 +45,3 @@ private:
     static int encode_grid(uint32_t lat, uint32_t lon, size_t length, char *buf, size_t bufsize);
 
 };
-
-#endif

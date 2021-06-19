@@ -20,7 +20,6 @@
 #include <AP_Common/AP_Common.h>
 #include <AP_Math/AP_Math.h>
 
-#if HAL_PLUSCODE_ENABLE
 // This is a port of https://github.com/google/open-location-code/blob/master/c/olc.c
 // to avoid double floating point math and use integer math as much as possible.
 
@@ -201,5 +200,3 @@ int AP_OLC::olc_encode(int32_t lat, int32_t lon, size_t length, char *buf, size_
     buf[pos] = '\0';
     return pos;
 }
-
-#endif 
