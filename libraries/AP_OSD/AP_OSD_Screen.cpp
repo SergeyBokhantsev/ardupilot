@@ -1965,6 +1965,10 @@ void AP_OSD_Screen::draw_clk(uint8_t x, uint8_t y)
 
 void AP_OSD_Screen::draw_pluscode(uint8_t x, uint8_t y)
 {
+	if (check_option(AP_OSD::OPTION_PERIODIC_GPS_LATLON) && !gps_lat_lon_ctx.visible) {
+        return;
+    }
+	
     AP_GPS & gps = AP::gps();
     const Location &loc = gps.location();
     char buff[16];
@@ -2238,6 +2242,8 @@ void AP_OSD_Screen::draw(void)
     if (!enabled || !backend) {
         return;
     }
+
+	gps_lat_lon_ctx.tick();	
 
     //Note: draw order should be optimized.
     //Big and less important items should be drawn first,
